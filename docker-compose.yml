@@ -11,7 +11,7 @@ services:
       - "traefik.enable=true"
       - "traefik.http.routers.leonardkabo.rule=Host(`leonardkabo.cloud`)"
       - "traefik.http.routers.leonardkabo.entrypoints=websecure"
-      - "traefik.http.routers.leonardkabo.tls.certresolver=myresolver"
+      - "traefik.http.routers.leonardkabo.tls.certresolver=mytlschallenge"
       - "traefik.http.services.leonardkabo.loadbalancer.server.port=3000"
 
 networks:
