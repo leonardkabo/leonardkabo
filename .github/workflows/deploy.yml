@@ -19,6 +19,8 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /path/to/your/project
+            # On cible le dossier spécifique "leonardkabo"
+            cd ~/leonardkabo
             git pull origin main
-            docker-compose up -d --build
+            # Commande Docker moderne
+            docker compose up -d --build
