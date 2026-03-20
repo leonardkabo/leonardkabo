@@ -21,13 +21,7 @@ export default function Footer() {
                 L
               </div>
               <span className="text-xl font-bold tracking-tight">
-                {SITE_NAME.split(' ').map((n, i) => (
-                  <span key={i} className={i === 2 ? 'text-blue-600' : ''}>
-                    {n.charAt(0)}
-                    {i === 2 ? '.' : ''}
-                  </span>
-                ))}
-                <span className="ml-1 text-blue-600">KABO</span>
+                L<span className="text-blue-600">. KABO</span>
               </span>
             </Link>
             <p className="text-gray-400 leading-relaxed mb-8">

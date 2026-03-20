@@ -45,19 +45,11 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2 group">
-            <img 
-             src="/favicon.ico" 
-              alt="Logo" 
-              className="w-10 h-10 object-contain group-hover:scale-110 transition-transform" 
-            />
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform">
+              L
+            </div>
             <span className="text-xl font-bold tracking-tight text-gray-900">
-              {SITE_NAME.split(' ').map((n, i) => (
-                <span key={i} className={i === 2 ? 'text-blue-600' : ''}>
-                  {n.charAt(0)}
-                  {i === 2 ? '.' : ''}
-                </span>
-              ))}
-              <span className="ml-1 text-blue-600">KABO</span>
+              L<span className="text-blue-600">. KABO</span>
             </span>
           </Link>
 
