@@ -19,11 +19,11 @@ const iconMap: Record<string, any> = {
 
 export default function ServicesGrid() {
   return (
-    <section className="py-24 bg-[#FAFAFA] relative overflow-hidden">
+    <section className="py-24 bg-gradient-to-b from-blue-50 to-sky-100 relative overflow-hidden">
       {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-50 rounded-full blur-3xl opacity-50" />
-        <div className="absolute top-1/2 -right-24 w-72 h-72 bg-orange-50 rounded-full blur-3xl opacity-50" />
+        <div className="absolute -top-24 -left-24 w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-sky-400/20 rounded-full blur-[150px]" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -32,7 +32,7 @@ export default function ServicesGrid() {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="inline-block px-4 py-1.5 mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600 bg-blue-50 rounded-full"
+            className="inline-block px-4 py-1.5 mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600 bg-blue-100 border border-blue-200 rounded-full"
           >
             Nos Services
           </motion.div>
@@ -41,7 +41,7 @@ export default function ServicesGrid() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl font-bold text-gray-900 mb-6 tracking-tight"
+            className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight"
           >
             Mes Domaines d'Expertise
           </motion.h2>
@@ -50,7 +50,7 @@ export default function ServicesGrid() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ delay: 0.2 }}
-            className="text-lg text-gray-600 leading-relaxed"
+            className="text-lg text-slate-600 leading-relaxed"
           >
             Des solutions complètes pour booster votre image et votre productivité. 
             Découvrez comment nous pouvons transformer votre vision en réalité.
@@ -70,36 +70,36 @@ export default function ServicesGrid() {
               >
                 <Link
                   to={`/services/${service.slug}`}
-                  className="group block h-full relative bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/20 hover:shadow-2xl hover:shadow-blue-600/10 hover:-translate-y-2 transition-all duration-500"
+                  className="group block h-full relative bg-white p-8 rounded-[2.5rem] border border-blue-100 hover:border-blue-500/50 shadow-xl shadow-blue-900/5 hover:shadow-blue-600/10 hover:-translate-y-2 transition-all duration-500"
                 >
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 bg-${service.category.color}-50 text-${service.category.color}-600 group-hover:scale-110 transition-transform duration-500`}>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform duration-500`}>
                     <Icon size={28} />
                   </div>
 
                   {service.pricing.packages.some(p => p.popular) && (
-                    <div className="absolute top-8 right-8 bg-orange-500 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-orange-500/20">
+                    <div className="absolute top-8 right-8 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-blue-600/20">
                       Populaire
                     </div>
                   )}
 
-                  <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors">
+                  <h3 className="text-2xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors">
                     {service.title}
                   </h3>
                   
-                  <p className="text-gray-600 mb-8 leading-relaxed line-clamp-2">
+                  <p className="text-slate-600 mb-8 leading-relaxed line-clamp-2">
                     {service.shortDesc}
                   </p>
 
-                  <div className="flex items-center justify-between mt-auto pt-6 border-t border-gray-50">
+                  <div className="flex items-center justify-between mt-auto pt-6 border-t border-slate-100">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">À partir de</span>
-                      <span className={`text-xl font-black text-gray-900 group-hover:text-blue-600 transition-colors`}>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">À partir de</span>
+                      <span className={`text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors`}>
                         {service.pricing.basePrice?.toLocaleString()} {service.pricing.currency || 'FCFA'}
                       </span>
                     </div>
                     
                     <div
-                      className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg shadow-transparent group-hover:shadow-blue-600/20"
+                      className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg shadow-transparent group-hover:shadow-blue-600/20"
                     >
                       <ArrowRight size={20} />
                     </div>
@@ -115,7 +115,7 @@ export default function ServicesGrid() {
             to="/services"
             variant="ghost"
             icon={ArrowRight}
-            className="flex-row-reverse group"
+            className="flex-row-reverse group text-slate-600 hover:bg-blue-100"
           >
             <span className="mr-2 group-hover:mr-4 transition-all">Voir tous les services en détail</span>
           </Button>
