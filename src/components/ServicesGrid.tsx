@@ -3,124 +3,162 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { motion } from 'motion/react';
-import { servicesData } from '../data';
-import { ArrowRight, Camera, Code, Bot, Palette, Mic } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import Button from './ui/Button';
+import { useSiteData } from '../hooks/useSiteData';
+import { Linkedin, Twitter, Facebook, MessageCircle, Mail, Phone, MapPin } from 'lucide-react';
+import { motion } from 'motion/react';
 
-const iconMap: Record<string, any> = {
-  Camera,
-  Code,
-  Bot,
-  Palette,
-  Mic,
-};
+export default function Footer() {
+  const { settings, loading } = useSiteData();
 
-export default function ServicesGrid() {
+  const navLinks = [
+    { name: 'Accueil', href: '/' },
+    { name: 'Services', href: '/services' },
+    { name: 'Réalisations', href: '/portfolio' },
+    { name: 'Devis', href: '/devis' },
+    { name: 'Contact', href: '/contact' },
+  ];
+
+  if (loading) return null;
+
   return (
-    <section className="py-24 bg-gradient-to-b from-blue-50 to-sky-100 relative overflow-hidden">
-      {/* Decorative background elements */}
-      <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-        <div className="absolute -top-24 -left-24 w-[500px] h-[500px] bg-blue-400/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-sky-400/20 rounded-full blur-[150px]" />
-      </div>
-
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="text-center max-w-3xl mx-auto mb-20">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            className="inline-block px-4 py-1.5 mb-6 text-[10px] font-bold uppercase tracking-[0.2em] text-blue-600 bg-blue-100 border border-blue-200 rounded-full"
-          >
-            Nos Services
-          </motion.div>
-          <motion.h2
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.1 }}
-            className="text-4xl md:text-5xl font-bold text-slate-900 mb-6 tracking-tight"
-          >
-            Mes Domaines d'Expertise
-          </motion.h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.2 }}
-            className="text-lg text-slate-600 leading-relaxed"
-          >
-            Des solutions complètes pour booster votre image et votre productivité. 
-            Découvrez comment nous pouvons transformer votre vision en réalité.
-          </motion.p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {servicesData.map((service, index) => {
-            const Icon = iconMap[service.category.icon] || Code;
-            return (
-              <motion.div
-                key={service.id}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: index * 0.1 }}
+    <footer className="bg-gray-900 text-white pt-24 pb-12 overflow-hidden relative">
+      <div className="absolute top-0 left-0 w-full h-1/2 bg-blue-600/5 -skew-y-6 transform -translate-y-1/2" />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-20">
+          <div className="col-span-1 lg:col-span-1">
+            <Link to="/" className="flex items-center space-x-2 mb-8 group">
+              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform">
+                {settings.logoText.charAt(0)}
+              </div>
+              <span className="text-xl font-bold tracking-tight">
+                {settings.logoText.split('.')[0]}<span className="text-blue-600">.{settings.logoText.split('.')[1] || ''}</span>
+              </span>
+            </Link>
+            <p className="text-gray-400 leading-relaxed mb-8">
+              {settings.siteTitle}
+            </p>
+            <div className="flex space-x-4">
+              <motion.a 
+                whileHover={{ scale: 1.1, y: -2 }}
+                whileTap={{ scale: 0.9 }}
+                href={settings.socialLinks.linkedin} 
+                className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-blue-600 hover:text-white transition-all"
               >
-                <Link
-                  to={`/services/${service.slug}`}
-                  className="group block h-full relative bg-white p-8 rounded-[2.5rem] border border-blue-100 hover:border-blue-500/50 shadow-xl shadow-blue-900/5 hover:shadow-blue-600/10 hover:-translate-y-2 transition-all duration-500"
-                >
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform duration-500`}>
-                    <Icon size={28} />
-                  </div>
+                <Linkedin size={20} />
+              </motion.a>
+              <motion.a 
+                whileHover={{ scale: 1.1, y: -2 }}
+                whileTap={{ scale: 0.9 }}
+                href={settings.socialLinks.twitter} 
+                className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-blue-400 hover:text-white transition-all"
+              >
+                <Twitter size={20} />
+              </motion.a>
+              <motion.a 
+                whileHover={{ scale: 1.1, y: -2 }}
+                whileTap={{ scale: 0.9 }}
+                href={settings.socialLinks.facebook} 
+                className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-blue-700 hover:text-white transition-all"
+              >
+                <Facebook size={20} />
+              </motion.a>
+              <motion.a 
+                whileHover={{ scale: 1.1, y: -2 }}
+                whileTap={{ scale: 0.9 }}
+                href={settings.socialLinks.whatsapp} 
+                className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-emerald-600 hover:text-white transition-all"
+              >
+                <MessageCircle size={20} />
+              </motion.a>
+            </div>
+          </div>
 
-                  {service.pricing.packages.some(p => p.popular) && (
-                    <div className="absolute top-8 right-8 bg-blue-600 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-blue-600/20">
-                      Populaire
-                    </div>
-                  )}
+          <div>
+            <h4 className="text-lg font-bold mb-8">Navigation</h4>
+            <ul className="space-y-4">
+              {navLinks.map((link) => (
+                <li key={link.name}>
+                  <motion.div
+                    whileHover={{ x: 5 }}
+                    transition={{ type: 'spring', stiffness: 300 }}
+                  >
+                    <Link to={link.href} className="text-gray-400 hover:text-blue-600 transition-colors">
+                      {link.name}
+                    </Link>
+                  </motion.div>
+                </li>
+              ))}
+            </ul>
+          </div>
 
-                  <h3 className="text-2xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors">
-                    {service.title}
-                  </h3>
-                  
-                  <p className="text-slate-600 mb-8 leading-relaxed line-clamp-2">
-                    {service.shortDesc}
-                  </p>
+          <div>
+            <h4 className="text-lg font-bold mb-8">Contact</h4>
+            <ul className="space-y-6">
+              <li className="flex items-start space-x-4">
+                <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-blue-600 shrink-0">
+                  <Mail size={20} />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Email</div>
+                  <a href="mailto:leonardkabo32@gmail.com" className="text-gray-300 hover:text-blue-600 transition-colors">
+                    leonardkabo32@gmail.com
+                  </a>
+                </div>
+              </li>
+              <li className="flex items-start space-x-4">
+                <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-emerald-600 shrink-0">
+                  <MessageCircle size={20} />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">WhatsApp</div>
+                  <a href={settings.socialLinks.whatsapp} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-blue-600 transition-colors">
+                    +229 65 45 87 78
+                  </a>
+                </div>
+              </li>
+              <li className="flex items-start space-x-4">
+                <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-blue-600 shrink-0">
+                  <Phone size={20} />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Téléphone</div>
+                  <a href="tel:+2290165458778" className="text-gray-300 hover:text-blue-600 transition-colors">
+                    +229 01 65 45 87 78
+                  </a>
+                </div>
+              </li>
+            </ul>
+          </div>
 
-                  <div className="flex items-center justify-between mt-auto pt-6 border-t border-slate-100">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">À partir de</span>
-                      <span className={`text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors`}>
-                        {service.pricing.basePrice?.toLocaleString()} {service.pricing.currency || 'FCFA'}
-                      </span>
-                    </div>
-                    
-                    <div
-                      className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg shadow-transparent group-hover:shadow-blue-600/20"
-                    >
-                      <ArrowRight size={20} />
-                    </div>
-                  </div>
-                </Link>
-              </motion.div>
-            );
-          })}
+          <div>
+            <h4 className="text-lg font-bold mb-8">Localisation</h4>
+            <div className="flex items-start space-x-4">
+              <div className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-red-600 shrink-0">
+                <MapPin size={20} />
+              </div>
+              <div>
+                <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Adresse</div>
+                <p className="text-gray-300">
+                  Parakou, Bénin <br />
+                  Quartier Dépôt
+                </p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="mt-20 text-center">
-          <Button
-            to="/services"
-            variant="ghost"
-            icon={ArrowRight}
-            className="flex-row-reverse group text-slate-600 hover:bg-blue-100"
-          >
-            <span className="mr-2 group-hover:mr-4 transition-all">Voir tous les services en détail</span>
-          </Button>
+        <div className="pt-12 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-6">
+          <p className="text-gray-500 text-sm">
+            © {new Date().getFullYear()} {settings.siteName}. Tous droits réservés.
+          </p>
+          <div className="flex space-x-8 text-sm text-gray-500">
+            <Link to="/mentions-legales" className="hover:text-blue-600 transition-colors">Mentions Légales</Link>
+            <Link to="/confidentialite" className="hover:text-blue-600 transition-colors">Confidentialité</Link>
+          </div>
         </div>
       </div>
-    </section>
+    </footer>
   );
 }

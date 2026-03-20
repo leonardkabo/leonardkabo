@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Menu, X, ChevronRight } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { NAV_LINKS, SITE_NAME } from '../constants';
+import { useSiteData } from '../hooks/useSiteData';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Button from './ui/Button';
@@ -20,6 +20,15 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+  const { settings } = useSiteData();
+
+  const navLinks = [
+    { name: 'Accueil', href: '/' },
+    { name: 'Services', href: '/services' },
+    { name: 'Réalisations', href: '/portfolio' },
+    { name: 'Devis', href: '/devis' },
+    { name: 'Contact', href: '/contact' },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -45,19 +54,17 @@ export default function Navbar() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
           <Link to="/" className="flex items-center space-x-2 group">
-            <img 
-              src="/favicon.ico" 
-               alt="Logo" 
-               className="w-10 h-10 object-contain group-hover:scale-110 transition-transform" 
-            />
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform">
+              {settings.logoText.charAt(0)}
+            </div>
             <span className="text-xl font-bold tracking-tight text-gray-900">
-              L<span className="text-blue-600">. KABO</span>
+              {settings.logoText.split('.')[0]}<span className="text-blue-600">.{settings.logoText.split('.')[1] || ''}</span>
             </span>
           </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <Link
                 key={link.name}
                 to={link.href}
@@ -101,7 +108,7 @@ export default function Navbar() {
             className="md:hidden bg-white border-b border-gray-100 overflow-hidden"
           >
             <div className="px-4 pt-2 pb-6 space-y-1">
-              {NAV_LINKS.map((link) => (
+              {navLinks.map((link) => (
                 <Link
                   key={link.name}
                   to={link.href}

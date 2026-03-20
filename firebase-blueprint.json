@@ -1,62 +1,87 @@
 {
   "entities": {
-    "Appointment": {
-      "title": "Rendez-vous",
-      "description": "Demande de rendez-vous client",
+    "SiteSettings": {
+      "title": "Site Settings",
+      "description": "Global settings for the website",
       "type": "object",
       "properties": {
-        "name": { "type": "string", "description": "Nom du client" },
-        "email": { "type": "string", "format": "email", "description": "Email du client" },
-        "phone": { "type": "string", "description": "Téléphone du client" },
-        "service": { "type": "string", "description": "Service demandé" },
-        "date": { "type": "string", "description": "Date du rendez-vous" },
-        "time": { "type": "string", "description": "Heure du rendez-vous" },
-        "message": { "type": "string", "description": "Message optionnel" },
-        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"], "description": "Statut de la demande" },
-        "createdAt": { "type": "number", "description": "Timestamp de création" }
+        "siteName": { "type": "string", "description": "The name of the site displayed in the logo and title" },
+        "siteTitle": { "type": "string", "description": "The main title or tagline of the site" },
+        "contactEmail": { "type": "string", "format": "email", "description": "Primary contact email" },
+        "socialLinks": {
+          "type": "object",
+          "properties": {
+            "linkedin": { "type": "string" },
+            "twitter": { "type": "string" },
+            "facebook": { "type": "string" },
+            "whatsapp": { "type": "string" }
+          }
+        },
+        "logoText": { "type": "string", "description": "Text to display next to the logo" }
       },
-      "required": ["name", "email", "phone", "service", "date", "time", "status", "createdAt"]
+      "required": ["siteName", "siteTitle", "contactEmail"]
     },
-    "QuoteRequest": {
-      "title": "Demande de Devis",
-      "description": "Demande de devis pour un projet",
+    "HeroSection": {
+      "title": "Hero Section",
+      "description": "Content for the hero section of the homepage",
       "type": "object",
       "properties": {
-        "name": { "type": "string", "description": "Nom du client" },
-        "email": { "type": "string", "format": "email", "description": "Email du client" },
-        "company": { "type": "string", "description": "Entreprise (optionnel)" },
-        "service": { "type": "string", "description": "Type de service" },
-        "budget": { "type": "string", "description": "Budget approximatif" },
-        "description": { "type": "string", "description": "Description du projet" },
-        "status": { "type": "string", "enum": ["pending", "responded"], "description": "Statut de la demande" },
-        "createdAt": { "type": "number", "description": "Timestamp de création" }
-      },
-      "required": ["name", "email", "service", "description", "status", "createdAt"]
+        "badge": { "type": "string", "description": "Small text badge above the main title" },
+        "title": { "type": "string", "description": "Main heading of the hero section" },
+        "subtitle": { "type": "string", "description": "Bolded part of the title" },
+        "description": { "type": "string", "description": "Main paragraph text" },
+        "ctaText": { "type": "string", "description": "Text for the primary call to action button" },
+        "ctaLink": { "type": "string", "description": "Link for the primary call to action button" },
+        "secondaryCtaText": { "type": "string", "description": "Text for the secondary call to action button" },
+        "secondaryCtaLink": { "type": "string", "description": "Link for the secondary call to action button" },
+        "profileImage": { "type": "string", "description": "URL of the profile image" },
+        "stats": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "value": { "type": "string" },
+              "label": { "type": "string" },
+              "sublabel": { "type": "string" },
+              "color": { "type": "string", "enum": ["blue", "emerald", "amber", "purple"] }
+            }
+          }
+        }
+      }
     },
-    "AppSetting": {
-      "title": "Paramètre de l'Application",
-      "description": "Paramètres globaux comme les coordonnées de la carte",
+    "Service": {
+      "title": "Service",
+      "description": "A service offered by the business",
       "type": "object",
       "properties": {
-        "mapLat": { "type": "number", "description": "Latitude de la carte" },
-        "mapLng": { "type": "number", "description": "Longitude de la carte" },
-        "updatedAt": { "type": "number", "description": "Timestamp de mise à jour" }
+        "title": { "type": "string" },
+        "slug": { "type": "string" },
+        "tagline": { "type": "string" },
+        "shortDesc": { "type": "string" },
+        "thumbnail": { "type": "string" },
+        "categoryId": { "type": "string" },
+        "priority": { "type": "number" }
       },
-      "required": ["mapLat", "mapLng", "updatedAt"]
+      "required": ["title", "slug", "categoryId"]
+    },
+    "PortfolioItem": {
+      "title": "Portfolio Item",
+      "description": "A project in the portfolio",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "image": { "type": "string" },
+        "description": { "type": "string" },
+        "technologies": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["title", "category", "image"]
     }
   },
   "firestore": {
-    "/appointments/{appointmentId}": {
-      "schema": "Appointment",
-      "description": "Collection des rendez-vous"
-    },
-    "/quotes/{quoteId}": {
-      "schema": "QuoteRequest",
-      "description": "Collection des demandes de devis"
-    },
-    "/settings/{settingId}": {
-      "schema": "AppSetting",
-      "description": "Collection des paramètres de l'application"
-    }
+    "/settings/site": { "schema": "SiteSettings", "description": "Global site configuration" },
+    "/sections/hero": { "schema": "HeroSection", "description": "Hero section content" },
+    "/services/{serviceId}": { "schema": "Service", "description": "List of services" },
+    "/portfolio/{itemId}": { "schema": "PortfolioItem", "description": "List of portfolio items" }
   }
 }

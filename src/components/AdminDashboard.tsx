@@ -3,14 +3,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
+import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
-import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, setDoc, getDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, setDoc, getDoc, addDoc } from 'firebase/firestore';
 import Button from './ui/Button';
+import { servicesData as staticServices, portfolioItems as staticPortfolio } from '../data';
+import { SITE_NAME, SITE_TITLE, CONTACT_EMAIL, SOCIAL_LINKS } from '../constants';
 
 enum OperationType {
   CREATE = 'create',
@@ -27,9 +29,35 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'settings'>('appointments');
+  const [services, setServices] = useState<any[]>([]);
+  const [portfolio, setPortfolio] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'content' | 'services' | 'portfolio' | 'settings'>('appointments');
   const [loading, setLoading] = useState(true);
+  
+  // Content States
+  const [siteSettings, setSiteSettings] = useState<any>({
+    siteName: SITE_NAME,
+    siteTitle: SITE_TITLE,
+    contactEmail: CONTACT_EMAIL,
+    socialLinks: SOCIAL_LINKS,
+    logoText: 'L. KABO'
+  });
+  
+  const [heroContent, setHeroContent] = useState<any>({
+    badge: "Producteur Multimédia | Journaliste | Développeur Web | Activiste DSSR",
+    title: "Eboun Léonard",
+    subtitle: "KABO",
+    description: "Expert en transformation numérique, je mets mes compétences au service du changement social et de la performance numérique.",
+    ctaText: "Explorer mes Services",
+    ctaLink: "/services",
+    secondaryCtaText: "Me Contacter",
+    secondaryCtaLink: "/contact",
+    profileImage: "/profile.jpg",
+    stats: []
+  });
+
   const [mapConfig, setMapConfig] = useState({ lat: 9.3372, lng: 2.6288 });
+  const [saving, setSaving] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
@@ -58,18 +86,33 @@ export default function AdminDashboard() {
   useEffect(() => {
     if (!user) return;
 
-    const qAppointments = query(collection(db, 'appointments'), orderBy('createdAt', 'desc'));
-    const unsubscribeAppointments = onSnapshot(qAppointments, (snapshot) => {
+    // Real-time listeners
+    const unsubAppointments = onSnapshot(query(collection(db, 'appointments'), orderBy('createdAt', 'desc')), (snapshot) => {
       setAppointments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'appointments'));
 
-    const qQuotes = query(collection(db, 'quotes'), orderBy('createdAt', 'desc'));
-    const unsubscribeQuotes = onSnapshot(qQuotes, (snapshot) => {
+    const unsubQuotes = onSnapshot(query(collection(db, 'quotes'), orderBy('createdAt', 'desc')), (snapshot) => {
       setQuotes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'quotes'));
 
-    // Fetch map settings
+    const unsubServices = onSnapshot(query(collection(db, 'services'), orderBy('priority', 'asc')), (snapshot) => {
+      setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'services'));
+
+    const unsubPortfolio = onSnapshot(collection(db, 'portfolio'), (snapshot) => {
+      setPortfolio(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'portfolio'));
+
+    // Fetch single docs
+    onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
+      if (docSnap.exists()) setSiteSettings(docSnap.data());
+    });
+
+    onSnapshot(doc(db, 'sections', 'hero'), (docSnap) => {
+      if (docSnap.exists()) setHeroContent(docSnap.data());
+    });
+
     getDoc(doc(db, 'settings', 'mapConfig')).then((docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -78,10 +121,91 @@ export default function AdminDashboard() {
     });
 
     return () => {
-      unsubscribeAppointments();
-      unsubscribeQuotes();
+      unsubAppointments();
+      unsubQuotes();
+      unsubServices();
+      unsubPortfolio();
     };
   }, [user]);
+
+  const handleSaveSiteSettings = async () => {
+    setSaving(true);
+    try {
+      await setDoc(doc(db, 'settings', 'site'), siteSettings);
+      alert('Paramètres du site enregistrés !');
+    } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'settings/site'); }
+    setSaving(false);
+  };
+
+  const handleSaveHero = async () => {
+    setSaving(true);
+    try {
+      await setDoc(doc(db, 'sections', 'hero'), heroContent);
+      alert('Contenu Hero enregistré !');
+    } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'sections/hero'); }
+    setSaving(false);
+  };
+
+  const handleAddService = async () => {
+    const title = prompt('Titre du service ?');
+    if (!title) return;
+    try {
+      await addDoc(collection(db, 'services'), {
+        title,
+        slug: title.toLowerCase().replace(/ /g, '-'),
+        categoryId: 'multimedia',
+        priority: services.length + 1,
+        shortDesc: 'Description courte...',
+        tagline: 'Slogan...',
+        thumbnail: 'https://picsum.photos/seed/service/800/600'
+      });
+    } catch (e) { handleFirestoreError(e, OperationType.CREATE, 'services'); }
+  };
+
+  const handleAddPortfolio = async () => {
+    const title = prompt('Titre du projet ?');
+    if (!title) return;
+    try {
+      await addDoc(collection(db, 'portfolio'), {
+        title,
+        category: 'web',
+        image: 'https://picsum.photos/seed/portfolio/800/600',
+        description: 'Description du projet...',
+        technologies: ['React', 'Firebase']
+      });
+    } catch (e) { handleFirestoreError(e, OperationType.CREATE, 'portfolio'); }
+  };
+
+  const initializeData = async () => {
+    if (!window.confirm('Voulez-vous initialiser la base de données avec les données par défaut ?')) return;
+    setSaving(true);
+    try {
+      // Initialize Services
+      for (const s of staticServices) {
+        await setDoc(doc(db, 'services', s.id), {
+          title: s.title,
+          slug: s.slug,
+          tagline: s.tagline || '',
+          shortDesc: s.shortDesc || '',
+          thumbnail: s.thumbnail || '',
+          categoryId: s.category?.id || 'multimedia',
+          priority: staticServices.indexOf(s) + 1
+        });
+      }
+      // Initialize Portfolio
+      for (const p of staticPortfolio) {
+        await addDoc(collection(db, 'portfolio'), {
+          title: p.title,
+          category: p.category,
+          image: p.image,
+          description: p.description,
+          technologies: p.technologies
+        });
+      }
+      alert('Données initialisées avec succès !');
+    } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'initialization'); }
+    setSaving(false);
+  };
 
   useEffect(() => {
     setCurrentPage(1);
@@ -171,6 +295,27 @@ export default function AdminDashboard() {
             icon={FileText}
           >
             Devis ({quotes.length})
+          </Button>
+          <Button
+            variant={activeTab === 'content' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('content')}
+            icon={Layout}
+          >
+            Contenu
+          </Button>
+          <Button
+            variant={activeTab === 'services' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('services')}
+            icon={Briefcase}
+          >
+            Services ({services.length})
+          </Button>
+          <Button
+            variant={activeTab === 'portfolio' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('portfolio')}
+            icon={ImageIcon}
+          >
+            Portfolio ({portfolio.length})
           </Button>
           <Button
             variant={activeTab === 'settings' ? 'primary' : 'outline'}
@@ -353,54 +498,225 @@ export default function AdminDashboard() {
                   </>
                 )}
               </motion.div>
+            ) : activeTab === 'content' ? (
+              <motion.div
+                key="content-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-12"
+              >
+                {/* Site Settings */}
+                <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100">
+                  <div className="flex items-center space-x-4 mb-8">
+                    <Globe className="text-blue-600" size={32} />
+                    <h2 className="text-2xl font-bold">Paramètres du Site</h2>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Nom du Site</label>
+                      <input
+                        className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                        value={siteSettings.siteName}
+                        onChange={(e) => setSiteSettings({...siteSettings, siteName: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Titre du Site</label>
+                      <input
+                        className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                        value={siteSettings.siteTitle}
+                        onChange={(e) => setSiteSettings({...siteSettings, siteTitle: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Email Contact</label>
+                      <input
+                        className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                        value={siteSettings.contactEmail}
+                        onChange={(e) => setSiteSettings({...siteSettings, contactEmail: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Texte Logo</label>
+                      <input
+                        className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                        value={siteSettings.logoText}
+                        onChange={(e) => setSiteSettings({...siteSettings, logoText: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={handleSaveSiteSettings} isLoading={saving} icon={Save}>Enregistrer les Paramètres</Button>
+                </div>
+
+                {/* Hero Content */}
+                <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100">
+                  <div className="flex items-center space-x-4 mb-8">
+                    <Layout className="text-blue-600" size={32} />
+                    <h2 className="text-2xl font-bold">Section Hero</h2>
+                  </div>
+                  <div className="space-y-6 mb-8">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Badge (Texte au dessus du titre)</label>
+                      <input
+                        className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                        value={heroContent.badge}
+                        onChange={(e) => setHeroContent({...heroContent, badge: e.target.value})}
+                      />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Titre (Prénom)</label>
+                        <input
+                          className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                          value={heroContent.title}
+                          onChange={(e) => setHeroContent({...heroContent, title: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Sous-titre (NOM)</label>
+                        <input
+                          className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                          value={heroContent.subtitle}
+                          onChange={(e) => setHeroContent({...heroContent, subtitle: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Description</label>
+                      <textarea
+                        rows={4}
+                        className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none resize-none"
+                        value={heroContent.description}
+                        onChange={(e) => setHeroContent({...heroContent, description: e.target.value})}
+                      />
+                    </div>
+                  </div>
+                  <Button onClick={handleSaveHero} isLoading={saving} icon={Save}>Enregistrer le Hero</Button>
+                </div>
+              </motion.div>
+            ) : activeTab === 'services' ? (
+              <motion.div
+                key="services-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">Gestion des Services</h2>
+                  <Button onClick={handleAddService} icon={Plus} size="sm">Ajouter un Service</Button>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {services.map(s => (
+                    <div key={s.id} className="bg-white p-6 rounded-3xl border border-gray-100 flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <img src={s.thumbnail} className="w-16 h-16 rounded-2xl object-cover" />
+                        <div>
+                          <h4 className="font-bold text-gray-900">{s.title}</h4>
+                          <p className="text-sm text-gray-500">{s.categoryId}</p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="icon" icon={Edit2} />
+                        <Button variant="danger" size="icon" icon={Trash2} onClick={() => deleteItem('services', s.id)} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : activeTab === 'portfolio' ? (
+              <motion.div
+                key="portfolio-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">Gestion du Portfolio</h2>
+                  <Button onClick={handleAddPortfolio} icon={Plus} size="sm">Ajouter un Projet</Button>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {portfolio.map(p => (
+                    <div key={p.id} className="bg-white p-6 rounded-3xl border border-gray-100 space-y-4">
+                      <img src={p.image} className="w-full h-48 rounded-2xl object-cover" />
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h4 className="font-bold text-gray-900">{p.title}</h4>
+                          <p className="text-sm text-gray-500">{p.category}</p>
+                        </div>
+                        <Button variant="danger" size="icon" icon={Trash2} onClick={() => deleteItem('portfolio', p.id)} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
             ) : (
               <motion.div
                 key="settings-tab"
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="bg-white p-12 rounded-[3rem] shadow-sm border border-gray-100"
+                className="space-y-8"
               >
-                <div className="flex items-center space-x-4 mb-8">
-                  <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
-                    <MapPin size={24} />
+                <div className="bg-white p-12 rounded-[3rem] shadow-sm border border-gray-100">
+                  <div className="flex items-center space-x-4 mb-8">
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                      <MapPin size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">Configuration de la Carte</h3>
+                      <p className="text-gray-500">Modifiez les coordonnées GPS de votre siège</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="text-2xl font-bold text-gray-900">Configuration de la Carte</h3>
-                    <p className="text-gray-500">Modifiez les coordonnées GPS de votre siège</p>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Latitude</label>
+                      <input
+                        type="number"
+                        step="any"
+                        className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+                        value={mapConfig.lat}
+                        onChange={(e) => setMapConfig({ ...mapConfig, lat: parseFloat(e.target.value) })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Longitude</label>
+                      <input
+                        type="number"
+                        step="any"
+                        className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+                        value={mapConfig.lng}
+                        onChange={(e) => setMapConfig({ ...mapConfig, lng: parseFloat(e.target.value) })}
+                      />
+                    </div>
                   </div>
+
+                  <Button
+                    onClick={saveMapSettings}
+                    isLoading={saving}
+                    icon={Save}
+                  >
+                    Enregistrer les Coordonnées
+                  </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Latitude</label>
-                    <input
-                      type="number"
-                      step="any"
-                      className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
-                      value={mapConfig.lat}
-                      onChange={(e) => setMapConfig({ ...mapConfig, lat: parseFloat(e.target.value) })}
-                    />
+                <div className="bg-white p-12 rounded-[3rem] shadow-sm border border-gray-100">
+                  <div className="flex items-center space-x-4 mb-8">
+                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
+                      <Settings size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">Initialisation</h3>
+                      <p className="text-gray-500">Remplir la base de données avec les données par défaut</p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Longitude</label>
-                    <input
-                      type="number"
-                      step="any"
-                      className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
-                      value={mapConfig.lng}
-                      onChange={(e) => setMapConfig({ ...mapConfig, lng: parseFloat(e.target.value) })}
-                    />
-                  </div>
+                  <Button variant="warning" onClick={initializeData} isLoading={saving} icon={Globe}>
+                    Initialiser les données Firestore
+                  </Button>
                 </div>
-
-                <Button
-                  onClick={saveMapSettings}
-                  isLoading={savingSettings}
-                  icon={Save}
-                >
-                  Enregistrer les Coordonnées
-                </Button>
               </motion.div>
             )}
           </AnimatePresence>

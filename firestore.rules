@@ -1,30 +1,149 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: settings
+    // Document ID: site
+    // Fields:
+    //   - siteName: string (required)
+    //   - siteTitle: string (required)
+    //   - contactEmail: string (required, email)
+    //   - socialLinks: map (optional)
+    //   - logoText: string (optional)
+    //
+    // Collection: sections
+    // Document ID: hero
+    // Fields:
+    //   - badge: string
+    //   - title: string
+    //   - subtitle: string
+    //   - description: string
+    //   - ctaText: string
+    //   - ctaLink: string
+    //   - secondaryCtaText: string
+    //   - secondaryCtaLink: string
+    //   - profileImage: string
+    //   - stats: list of maps
+    //
+    // Collection: services
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required)
+    //   - slug: string (required)
+    //   - tagline: string
+    //   - shortDesc: string
+    //   - thumbnail: string
+    //   - categoryId: string (required)
+    //   - priority: number
+    //
+    // Collection: portfolio
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required)
+    //   - category: string (required)
+    //   - image: string (required)
+    //   - description: string
+    //   - technologies: list of strings
+    //
+    // Collection: appointments
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required, email)
+    //   - phone: string (required)
+    //   - date: string (required)
+    //   - time: string (required)
+    //   - service: string (required)
+    //   - message: string (optional)
+    //   - status: string (required, enum: ['pending', 'confirmed', 'cancelled'])
+    //   - createdAt: timestamp (required)
+    //
+    // Collection: quotes
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required, email)
+    //   - company: string (optional)
+    //   - service: string (required)
+    //   - budget: string (optional)
+    //   - description: string (required)
+    //   - status: string (required, enum: ['pending', 'responded'])
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
     function isAuthenticated() {
       return request.auth != null;
     }
+
     function isAdmin() {
-      return isAuthenticated() && request.auth.token.email == "leonardkabo32@gmail.com";
+      return isAuthenticated() &&
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+          (request.auth.token.email == "leonardkabo32@gmail.com" && request.auth.token.email_verified == true));
     }
-    match /appointments/{appointmentId} {
-      allow read: if isAdmin();
-      allow create: if true;
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+
+    function isValidEmail(email) {
+      return email is string &&
+        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
     }
-    match /quotes/{quoteId} {
-      allow read: if isAdmin();
-      allow create: if true;
-      allow update: if isAdmin();
-      allow delete: if isAdmin();
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
     }
-    match /settings/{settingId} {
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    // Publicly readable, admin writable
+    match /settings/{docId} {
       allow read: if true;
       allow write: if isAdmin();
     }
-    match /{document=**} {
-      allow read, write: if false;
+
+    match /sections/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /services/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /portfolio/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Publicly writable (for submissions), admin readable/writable
+    match /appointments/{docId} {
+      allow create: if hasOnlyAllowedFields(['name', 'email', 'phone', 'date', 'time', 'service', 'message', 'status', 'createdAt']) &&
+                      request.resource.data.name is string &&
+                      isValidEmail(request.resource.data.email) &&
+                      request.resource.data.status == 'pending';
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /quotes/{docId} {
+      allow create: if hasOnlyAllowedFields(['name', 'email', 'company', 'service', 'budget', 'description', 'status', 'createdAt']) &&
+                      request.resource.data.name is string &&
+                      isValidEmail(request.resource.data.email) &&
+                      request.resource.data.status == 'pending';
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated() && request.auth.uid == userId;
+      allow write: if isAdmin();
     }
   }
 }

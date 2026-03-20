@@ -5,7 +5,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { portfolioItems } from '../data';
+import { useSiteData } from '../hooks/useSiteData';
 import { ExternalLink, Filter } from 'lucide-react';
 import Button from './ui/Button';
 import { clsx, type ClassValue } from 'clsx';
@@ -17,6 +17,7 @@ function cn(...inputs: ClassValue[]) {
 
 export default function Portfolio() {
   const [filter, setFilter] = useState('all');
+  const { portfolio, loading } = useSiteData();
   
   const categories = [
     { id: 'all', name: 'Tous' },
@@ -25,9 +26,11 @@ export default function Portfolio() {
     { id: 'media', name: 'Multimedia' },
   ];
 
+  if (loading) return null;
+
   const filteredItems = filter === 'all' 
-    ? portfolioItems 
-    : portfolioItems.filter(item => item.category === filter);
+    ? portfolio 
+    : portfolio.filter(item => item.category === filter);
 
   return (
     <section className="py-24 bg-gray-50 overflow-hidden">
@@ -89,7 +92,7 @@ export default function Portfolio() {
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-gray-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-8">
                     <div className="flex gap-2">
-                      {item.technologies.map((tech) => (
+                      {item.technologies?.map((tech: string) => (
                         <span key={tech} className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">
                           {tech}
                         </span>
