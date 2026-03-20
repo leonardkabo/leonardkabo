@@ -1,0 +1,62 @@
+{
+  "entities": {
+    "Appointment": {
+      "title": "Rendez-vous",
+      "description": "Demande de rendez-vous client",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nom du client" },
+        "email": { "type": "string", "format": "email", "description": "Email du client" },
+        "phone": { "type": "string", "description": "Téléphone du client" },
+        "service": { "type": "string", "description": "Service demandé" },
+        "date": { "type": "string", "description": "Date du rendez-vous" },
+        "time": { "type": "string", "description": "Heure du rendez-vous" },
+        "message": { "type": "string", "description": "Message optionnel" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"], "description": "Statut de la demande" },
+        "createdAt": { "type": "number", "description": "Timestamp de création" }
+      },
+      "required": ["name", "email", "phone", "service", "date", "time", "status", "createdAt"]
+    },
+    "QuoteRequest": {
+      "title": "Demande de Devis",
+      "description": "Demande de devis pour un projet",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Nom du client" },
+        "email": { "type": "string", "format": "email", "description": "Email du client" },
+        "company": { "type": "string", "description": "Entreprise (optionnel)" },
+        "service": { "type": "string", "description": "Type de service" },
+        "budget": { "type": "string", "description": "Budget approximatif" },
+        "description": { "type": "string", "description": "Description du projet" },
+        "status": { "type": "string", "enum": ["pending", "responded"], "description": "Statut de la demande" },
+        "createdAt": { "type": "number", "description": "Timestamp de création" }
+      },
+      "required": ["name", "email", "service", "description", "status", "createdAt"]
+    },
+    "AppSetting": {
+      "title": "Paramètre de l'Application",
+      "description": "Paramètres globaux comme les coordonnées de la carte",
+      "type": "object",
+      "properties": {
+        "mapLat": { "type": "number", "description": "Latitude de la carte" },
+        "mapLng": { "type": "number", "description": "Longitude de la carte" },
+        "updatedAt": { "type": "number", "description": "Timestamp de mise à jour" }
+      },
+      "required": ["mapLat", "mapLng", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/appointments/{appointmentId}": {
+      "schema": "Appointment",
+      "description": "Collection des rendez-vous"
+    },
+    "/quotes/{quoteId}": {
+      "schema": "QuoteRequest",
+      "description": "Collection des demandes de devis"
+    },
+    "/settings/{settingId}": {
+      "schema": "AppSetting",
+      "description": "Collection des paramètres de l'application"
+    }
+  }
+}

@@ -1,0 +1,107 @@
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { motion } from 'motion/react';
+import { servicesData } from '../data';
+import { ArrowRight, Camera, Code, Bot, Palette, Mic } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import Button from './ui/Button';
+
+const iconMap: Record<string, any> = {
+  Camera,
+  Code,
+  Bot,
+  Palette,
+  Mic,
+};
+
+export default function ServicesGrid() {
+  return (
+    <section className="py-24 bg-white relative overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center max-w-3xl mx-auto mb-20">
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-4xl font-bold text-gray-900 mb-6 tracking-tight"
+          >
+            Mes Domaines d'Expertise
+          </motion.h2>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.1 }}
+            className="text-lg text-gray-600 leading-relaxed"
+          >
+            Des solutions complètes pour booster votre image et votre productivité. Cliquez sur un service pour voir les détails et commander.
+          </motion.p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {servicesData.map((service, index) => {
+            const Icon = iconMap[service.category.icon] || Code;
+            return (
+              <motion.div
+                key={service.id}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 }}
+                className="group relative bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-xl shadow-gray-200/20 hover:shadow-2xl hover:shadow-blue-600/10 hover:-translate-y-2 transition-all duration-500"
+              >
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 bg-${service.category.color}-50 text-${service.category.color}-600 group-hover:scale-110 transition-transform`}>
+                  <Icon size={28} />
+                </div>
+
+                {service.pricing.packages.some(p => p.popular) && (
+                  <div className="absolute top-8 right-8 bg-orange-500 text-white px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest shadow-lg shadow-orange-500/20">
+                    Populaire
+                  </div>
+                )}
+
+                <h3 className="text-2xl font-bold text-gray-900 mb-4 group-hover:text-blue-600 transition-colors">
+                  {service.title}
+                </h3>
+                
+                <p className="text-gray-600 mb-8 leading-relaxed line-clamp-2">
+                  {service.shortDesc}
+                </p>
+
+                <div className="flex items-center justify-between mt-auto">
+                  <div className="flex flex-col">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">À partir de</span>
+                    <span className={`text-xl font-black text-${service.category.color}-600`}>
+                      {service.pricing.basePrice?.toLocaleString()} {service.pricing.currency || 'FCFA'}
+                    </span>
+                  </div>
+                  
+                  <Link
+                    to={`/services/${service.slug}`}
+                    className="w-12 h-12 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg shadow-transparent group-hover:shadow-blue-600/20"
+                  >
+                    <ArrowRight size={20} />
+                  </Link>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+
+        <div className="mt-20 text-center">
+          <Button
+            to="/services"
+            variant="ghost"
+            icon={ArrowRight}
+            className="flex-row-reverse"
+          >
+            <span className="mr-2">Voir tous les services en détail</span>
+          </Button>
+        </div>
+      </div>
+    </section>
+  );
+}
