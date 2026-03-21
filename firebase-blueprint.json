@@ -62,7 +62,9 @@
         "categoryId": { "type": "string" },
         "priority": { "type": "number" },
         "promoPrice": { "type": "number", "description": "Optional promotional price" },
-        "isPromoActive": { "type": "boolean", "description": "Whether the promotion is currently active" }
+        "isPromoActive": { "type": "boolean", "description": "Whether the promotion is currently active" },
+        "promoStartDate": { "type": "string", "description": "Start date of the promotion (YYYY-MM-DD)" },
+        "promoEndDate": { "type": "string", "description": "End date of the promotion (YYYY-MM-DD)" }
       },
       "required": ["title", "slug", "categoryId"]
     },

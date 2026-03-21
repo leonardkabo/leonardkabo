@@ -33,9 +33,17 @@ export default function AdminDashboard() {
   const [services, setServices] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [news, setNews] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'content' | 'services' | 'portfolio' | 'news' | 'settings'>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'content' | 'services' | 'portfolio' | 'news' | 'settings' | 'promos'>('appointments');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const isNew = (timestamp: any) => {
+    if (!timestamp) return false;
+    const now = Date.now();
+    const itemDate = typeof timestamp === 'number' ? timestamp : (timestamp.seconds ? timestamp.seconds * 1000 : now);
+    const diff = now - itemDate;
+    return diff < 24 * 60 * 60 * 1000; // 24 hours
+  };
   
   // Edit States
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -170,7 +178,8 @@ export default function AdminDashboard() {
         priority: services.length + 1,
         shortDesc: 'Description courte...',
         tagline: 'Slogan...',
-        thumbnail: 'https://picsum.photos/seed/service/800/600'
+        thumbnail: 'https://picsum.photos/seed/service/800/600',
+        createdAt: Date.now()
       });
     } catch (e) { handleFirestoreError(e, OperationType.CREATE, 'services'); }
   };
@@ -184,7 +193,8 @@ export default function AdminDashboard() {
         category: 'web',
         image: 'https://picsum.photos/seed/portfolio/800/600',
         description: 'Description du projet...',
-        technologies: ['React', 'Firebase']
+        technologies: ['React', 'Firebase'],
+        createdAt: Date.now()
       });
     } catch (e) { handleFirestoreError(e, OperationType.CREATE, 'portfolio'); }
   };
@@ -242,7 +252,8 @@ export default function AdminDashboard() {
           pricing: s.pricing || null,
           description: s.description || null,
           metrics: s.metrics || null,
-          gallery: s.gallery || []
+          gallery: s.gallery || [],
+          createdAt: Date.now()
         });
       }
       // Initialize Portfolio
@@ -252,7 +263,8 @@ export default function AdminDashboard() {
           category: p.category,
           image: p.image,
           description: p.description,
-          technologies: p.technologies
+          technologies: p.technologies,
+          createdAt: Date.now()
         });
       }
       // Initialize News
@@ -597,6 +609,13 @@ export default function AdminDashboard() {
             Services ({services.length})
           </Button>
           <Button
+            variant={activeTab === 'promos' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('promos')}
+            icon={TrendingUp}
+          >
+            Promos
+          </Button>
+          <Button
             variant={activeTab === 'portfolio' ? 'primary' : 'outline'}
             onClick={() => setActiveTab('portfolio')}
             icon={ImageIcon}
@@ -659,6 +678,11 @@ export default function AdminDashboard() {
                       >
                         <div className="flex-1 space-y-4">
                           <div className="flex items-center space-x-4">
+                            {isNew(item.createdAt) && (
+                              <div className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 animate-pulse">
+                                Nouveau
+                              </div>
+                            )}
                             <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
                               item.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600' :
                               item.status === 'cancelled' ? 'bg-red-50 text-red-600' :
@@ -748,6 +772,11 @@ export default function AdminDashboard() {
                       >
                         <div className="flex-1 space-y-4">
                           <div className="flex items-center space-x-4">
+                            {isNew(item.createdAt) && (
+                              <div className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 animate-pulse">
+                                Nouveau
+                              </div>
+                            )}
                             <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
                               item.status === 'responded' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
                             }`}>
@@ -930,6 +959,9 @@ export default function AdminDashboard() {
                           <div>
                             <div className="flex items-center space-x-2">
                               <h4 className="font-bold text-gray-900">{s.title}</h4>
+                              {isNew(s.createdAt) && (
+                                <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">Nouveau</span>
+                              )}
                               {s.isPromoActive && (
                                 <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Promo</span>
                               )}
@@ -963,7 +995,12 @@ export default function AdminDashboard() {
                       <img src={p.image} className="w-full h-48 rounded-2xl object-cover" />
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-bold text-gray-900">{p.title}</h4>
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-bold text-gray-900">{p.title}</h4>
+                            {isNew(p.createdAt) && (
+                              <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">Nouveau</span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500">{p.category}</p>
                         </div>
                         <div className="flex space-x-2">
@@ -973,6 +1010,61 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </motion.div>
+            ) : activeTab === 'promos' ? (
+              <motion.div
+                key="promos-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">Gestion des Promotions</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {services.filter(s => s.isPromoActive).length === 0 ? (
+                    <div className="col-span-2 bg-white p-20 rounded-[3rem] text-center border border-gray-100">
+                      <TrendingUp size={48} className="mx-auto text-gray-200 mb-6" />
+                      <p className="text-gray-400 font-medium">Aucune promotion active pour le moment.</p>
+                    </div>
+                  ) : (
+                    services.filter(s => s.isPromoActive).map(s => (
+                      <div key={s.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-emerald-100 relative overflow-hidden">
+                        <div className="absolute top-0 right-0 bg-emerald-500 text-white px-6 py-2 rounded-bl-3xl text-xs font-black uppercase tracking-widest">
+                          Active
+                        </div>
+                        <div className="flex items-center space-x-6 mb-6">
+                          <img src={s.thumbnail} className="w-20 h-20 rounded-2xl object-cover" />
+                          <div>
+                            <h3 className="text-xl font-bold text-gray-900">{s.title}</h3>
+                            <p className="text-sm text-gray-500">{s.categoryId}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4 mb-6">
+                          <div className="bg-gray-50 p-4 rounded-2xl">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Prix Promo</p>
+                            <p className="text-lg font-bold text-emerald-600">{s.promoPrice?.toLocaleString()} FCFA</p>
+                          </div>
+                          <div className="bg-gray-50 p-4 rounded-2xl">
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Période</p>
+                            <p className="text-xs font-medium text-gray-600">
+                              {s.promoStartDate || 'N/A'} au {s.promoEndDate || 'N/A'}
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="outline"
+                          className="w-full"
+                          onClick={() => handleEdit(s, 'service')}
+                          icon={Edit2}
+                        >
+                          Modifier la Promo
+                        </Button>
+                      </div>
+                    ))
+                  )}
                 </div>
               </motion.div>
             ) : activeTab === 'news' ? (
@@ -993,7 +1085,12 @@ export default function AdminDashboard() {
                       <div className="flex items-center space-x-4">
                         <img src={n.image} className="w-16 h-16 rounded-2xl object-cover" />
                         <div>
-                          <h4 className="font-bold text-gray-900">{n.title}</h4>
+                          <div className="flex items-center space-x-2">
+                            <h4 className="font-bold text-gray-900">{n.title}</h4>
+                            {isNew(n.createdAt) && (
+                              <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">Nouveau</span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-500">{new Date(n.createdAt).toLocaleDateString()}</p>
                         </div>
                       </div>
@@ -1156,6 +1253,28 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                         </div>
+                        {editingItem.isPromoActive && (
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Date de Début</label>
+                              <input
+                                type="date"
+                                className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                                value={editingItem.promoStartDate || ''}
+                                onChange={(e) => setEditingItem({...editingItem, promoStartDate: e.target.value})}
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Date de Fin</label>
+                              <input
+                                type="date"
+                                className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                                value={editingItem.promoEndDate || ''}
+                                onChange={(e) => setEditingItem({...editingItem, promoEndDate: e.target.value})}
+                              />
+                            </div>
+                          </div>
+                        )}
                       </>
                     )}
                     

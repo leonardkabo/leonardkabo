@@ -150,7 +150,11 @@ export default function ServiceDetail() {
                     <div className="flex justify-between items-center">
                       <div>
                         <h4 className="font-bold text-emerald-900">Tarif Promotionnel</h4>
-                        <p className="text-xs text-emerald-600 mt-1">Profitez de cette offre limitée</p>
+                        <p className="text-xs text-emerald-600 mt-1">
+                          {service.promoStartDate && service.promoEndDate 
+                            ? `Du ${new Date(service.promoStartDate).toLocaleDateString()} au ${new Date(service.promoEndDate).toLocaleDateString()}`
+                            : 'Profitez de cette offre limitée'}
+                        </p>
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-black text-emerald-600">
