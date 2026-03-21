@@ -126,43 +126,79 @@ export function useSiteData() {
   const [services, setServices] = useState<any[]>(staticServices);
   const [portfolio, setPortfolio] = useState<any[]>(staticPortfolio);
   const [news, setNews] = useState<NewsItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loaded, setLoaded] = useState({
+    settings: false,
+    hero: false,
+    services: false,
+    portfolio: false,
+    news: false
+  });
 
   useEffect(() => {
     const unsubSettings = onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
       if (docSnap.exists()) {
         setSettings(docSnap.data() as SiteSettings);
       }
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/site'));
+      setLoaded(prev => ({ ...prev, settings: true }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'settings/site');
+      setLoaded(prev => ({ ...prev, settings: true }));
+    });
 
     const unsubHero = onSnapshot(doc(db, 'sections', 'hero'), (docSnap) => {
       if (docSnap.exists()) {
         setHero(docSnap.data() as HeroContent);
       }
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'sections/hero'));
+      setLoaded(prev => ({ ...prev, hero: true }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'sections/hero');
+      setLoaded(prev => ({ ...prev, hero: true }));
+    });
 
     const qServices = query(collection(db, 'services'), orderBy('priority', 'asc'));
     const unsubServices = onSnapshot(qServices, (snapshot) => {
       if (!snapshot.empty) {
-        setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const remoteData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+        // Merge with static data to ensure all fields (pricing, description, etc.) are present
+        // even if they weren't fully initialized in Firestore yet
+        const merged = remoteData.map(rs => {
+          const local = staticServices.find(ls => ls.id === rs.id || ls.slug === rs.slug);
+          return local ? { ...local, ...rs } : rs;
+        });
+        setServices(merged);
       }
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'services'));
+      setLoaded(prev => ({ ...prev, services: true }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'services');
+      setLoaded(prev => ({ ...prev, services: true }));
+    });
 
     const qPortfolio = query(collection(db, 'portfolio'));
     const unsubPortfolio = onSnapshot(qPortfolio, (snapshot) => {
       if (!snapshot.empty) {
-        setPortfolio(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        const remoteData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as any));
+        const merged = remoteData.map(rp => {
+          const local = staticPortfolio.find(lp => String(lp.id) === String(rp.id) || lp.title === rp.title);
+          return local ? { ...local, ...rp } : rp;
+        });
+        setPortfolio(merged);
       }
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'portfolio'));
+      setLoaded(prev => ({ ...prev, portfolio: true }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'portfolio');
+      setLoaded(prev => ({ ...prev, portfolio: true }));
+    });
 
     const qNews = query(collection(db, 'news'), orderBy('createdAt', 'desc'));
     const unsubNews = onSnapshot(qNews, (snapshot) => {
       if (!snapshot.empty) {
         setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as NewsItem)));
       }
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'news'));
-
-    setLoading(false);
+      setLoaded(prev => ({ ...prev, news: true }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.LIST, 'news');
+      setLoaded(prev => ({ ...prev, news: true }));
+    });
 
     return () => {
       unsubSettings();
@@ -172,6 +208,8 @@ export function useSiteData() {
       unsubNews();
     };
   }, []);
+
+  const loading = !loaded.settings && !loaded.hero && !loaded.services && !loaded.portfolio && !loaded.news;
 
   return { settings, hero, services, portfolio, news, loading };
 }
