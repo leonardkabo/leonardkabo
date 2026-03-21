@@ -75,6 +75,8 @@ export interface Service {
   thumbnail: string;
   categoryId: string;
   priority: number;
+  promoPrice?: number;
+  isPromoActive?: boolean;
 }
 
 export interface PortfolioItem {

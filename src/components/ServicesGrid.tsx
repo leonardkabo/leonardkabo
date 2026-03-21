@@ -76,8 +76,13 @@ export default function ServicesGrid() {
                   to={`/services/${service.slug}`}
                   className="group block h-full relative bg-white p-8 rounded-[2.5rem] border border-blue-100 hover:border-blue-500/50 shadow-xl shadow-blue-900/5 hover:shadow-blue-600/10 hover:-translate-y-2 transition-all duration-500"
                 >
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform duration-500`}>
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform duration-500 relative`}>
                     <Icon size={28} />
+                    {service.isPromoActive && (
+                      <span className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-lg uppercase tracking-tighter shadow-lg shadow-emerald-500/20">
+                        Promo
+                      </span>
+                    )}
                   </div>
 
                   <h3 className="text-2xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors">

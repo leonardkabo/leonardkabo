@@ -4,9 +4,10 @@
  */
 
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { servicesData, CONFIG } from '../data';
+import { useSiteData } from '../hooks/useSiteData';
+import { CONFIG } from '../data';
 import { motion } from 'motion/react';
-import { Check, ArrowLeft, Calendar, FileText, Star, Clock, ShieldCheck, Zap } from 'lucide-react';
+import { Check, ArrowLeft, Calendar, FileText, Star, Clock, ShieldCheck, Zap, Tag } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Button from './ui/Button';
@@ -18,7 +19,14 @@ function cn(...inputs: ClassValue[]) {
 export default function ServiceDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const service = servicesData.find(s => s.slug === slug);
+  const { services, loading } = useSiteData();
+  const service = services.find(s => s.slug === slug);
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
+    </div>
+  );
 
   if (!service) {
     return (
@@ -134,7 +142,29 @@ export default function ServiceDetail() {
               <h3 className="text-2xl font-bold text-gray-900 mb-8">Forfaits Disponibles</h3>
               
               <div className="space-y-6 mb-10">
-                {service.pricing.packages.map((pkg, i) => (
+                {service.isPromoActive && service.promoPrice && (
+                  <div className="p-6 rounded-3xl border-2 border-emerald-500 bg-emerald-50/30 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[10px] font-black px-3 py-1 rounded-bl-2xl uppercase tracking-widest">
+                      Offre Spéciale
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h4 className="font-bold text-emerald-900">Tarif Promotionnel</h4>
+                        <p className="text-xs text-emerald-600 mt-1">Profitez de cette offre limitée</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-2xl font-black text-emerald-600">
+                          {service.promoPrice.toLocaleString()} {CONFIG.currency}
+                        </div>
+                        <div className="text-xs text-emerald-400 line-through">
+                          À partir de {service.pricing?.packages[0]?.price.toLocaleString()} {CONFIG.currency}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {service.pricing?.packages.map((pkg: any, i: number) => (
                   <div
                     key={i}
                     className={cn(

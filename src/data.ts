@@ -61,6 +61,8 @@ export const servicesData = [
         tagline: "Capturer l'invisible, immortaliser l'instant",
         shortDesc: "Prises de vue professionnelle, photo et vidéo pour tous vos évènements marquants.",
         thumbnail: "https://picsum.photos/seed/multimedia/800/600",
+        promoPrice: 45000,
+        isPromoActive: true,
         gallery: [
             "https://picsum.photos/seed/multimedia1/800/600",
             "https://picsum.photos/seed/multimedia2/800/600",

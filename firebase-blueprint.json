@@ -60,7 +60,9 @@
         "shortDesc": { "type": "string" },
         "thumbnail": { "type": "string" },
         "categoryId": { "type": "string" },
-        "priority": { "type": "number" }
+        "priority": { "type": "number" },
+        "promoPrice": { "type": "number", "description": "Optional promotional price" },
+        "isPromoActive": { "type": "boolean", "description": "Whether the promotion is currently active" }
       },
       "required": ["title", "slug", "categoryId"]
     },

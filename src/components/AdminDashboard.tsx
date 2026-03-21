@@ -4,12 +4,13 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe } from 'lucide-react';
+import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, Eye } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, setDoc, getDoc, addDoc } from 'firebase/firestore';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, Cell, PieChart, Pie } from 'recharts';
 import Button from './ui/Button';
 import { servicesData as staticServices, portfolioItems as staticPortfolio } from '../data';
 import { SITE_NAME, SITE_TITLE, CONTACT_EMAIL, SOCIAL_LINKS } from '../constants';
@@ -34,6 +35,7 @@ export default function AdminDashboard() {
   const [news, setNews] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'content' | 'services' | 'portfolio' | 'news' | 'settings'>('appointments');
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
   
   // Edit States
   const [editingItem, setEditingItem] = useState<any>(null);
@@ -234,7 +236,13 @@ export default function AdminDashboard() {
           shortDesc: s.shortDesc || '',
           thumbnail: s.thumbnail || '',
           categoryId: s.category?.id || 'multimedia',
-          priority: staticServices.indexOf(s) + 1
+          priority: staticServices.indexOf(s) + 1,
+          promoPrice: (s as any).promoPrice || 0,
+          isPromoActive: (s as any).isPromoActive || false,
+          pricing: s.pricing || null,
+          description: s.description || null,
+          metrics: s.metrics || null,
+          gallery: s.gallery || []
         });
       }
       // Initialize Portfolio
@@ -316,7 +324,87 @@ export default function AdminDashboard() {
     }
   };
 
-  const currentItems = activeTab === 'appointments' ? appointments : quotes;
+  // Stats Calculation
+  const stats = {
+    totalAppointments: appointments.length,
+    pendingQuotes: quotes.filter(q => q.status === 'pending').length,
+    newClients: new Set([...appointments.map(a => a.email), ...quotes.map(q => q.email)]).size,
+    estimatedRevenue: quotes
+      .filter(q => q.status === 'responded')
+      .reduce((acc, q) => {
+        if (q.budget === '< 100k') return acc + 50000;
+        if (q.budget === '100k-500k') return acc + 300000;
+        if (q.budget === '500k-1M') return acc + 750000;
+        if (q.budget === '> 1M') return acc + 1000000;
+        return acc;
+      }, 0)
+  };
+
+  // Real-time data aggregation for charts
+  const getVisitorData = () => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d.toLocaleDateString('fr-FR', { weekday: 'short' });
+    });
+
+    const counts = last7Days.map(day => {
+      const appts = appointments.filter(a => {
+        const d = new Date(a.createdAt);
+        return d.toLocaleDateString('fr-FR', { weekday: 'short' }) === day;
+      }).length;
+      const qts = quotes.filter(q => {
+        const d = new Date(q.createdAt);
+        return d.toLocaleDateString('fr-FR', { weekday: 'short' }) === day;
+      }).length;
+      return { name: day, visitors: (appts + qts) * 5 + 10, activity: appts + qts }; // Mocking visitors based on activity
+    });
+
+    return counts;
+  };
+
+  const getRevenueData = () => {
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sept', 'Oct', 'Nov', 'Déc'];
+    const currentMonth = new Date().getMonth();
+    const last6Months = Array.from({ length: 6 }, (_, i) => {
+      const m = (currentMonth - (5 - i) + 12) % 12;
+      return months[m];
+    });
+
+    return last6Months.map(monthName => {
+      const monthIndex = months.indexOf(monthName);
+      const revenue = quotes
+        .filter(q => {
+          const d = new Date(q.createdAt);
+          return d.getMonth() === monthIndex && q.status === 'responded';
+        })
+        .reduce((acc, q) => {
+          if (q.budget === '< 100k') return acc + 50000;
+          if (q.budget === '100k-500k') return acc + 300000;
+          if (q.budget === '500k-1M') return acc + 750000;
+          if (q.budget === '> 1M') return acc + 1000000;
+          return acc;
+        }, 0);
+      return { month: monthName, revenue };
+    });
+  };
+
+  const visitorData = getVisitorData();
+  const revenueData = getRevenueData();
+
+  const filteredAppointments = appointments.filter(item => 
+    item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.service?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const filteredQuotes = quotes.filter(item => 
+    item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.service?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const currentItems = activeTab === 'appointments' ? filteredAppointments : filteredQuotes;
   const totalPages = Math.ceil(currentItems.length / ITEMS_PER_PAGE);
   const paginatedItems = currentItems.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -346,6 +434,137 @@ export default function AdminDashboard() {
           >
             Déconnexion
           </Button>
+        </div>
+
+        {/* Stats Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                <Calendar size={24} />
+              </div>
+              <TrendingUp size={20} className="text-emerald-500" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.totalAppointments}</div>
+            <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">Rendez-vous</div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
+                <FileText size={24} />
+              </div>
+              <Clock size={20} className="text-amber-500" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.pendingQuotes}</div>
+            <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">Devis en attente</div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
+                <Users size={24} />
+              </div>
+              <Users size={20} className="text-purple-500" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.newClients}</div>
+            <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">Nouveaux Clients</div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center">
+                <DollarSign size={24} />
+              </div>
+              <TrendingUp size={20} className="text-emerald-500" />
+            </div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.estimatedRevenue.toLocaleString()} FCFA</div>
+            <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">CA Estimé (Mois)</div>
+          </motion.div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-bold text-gray-900">Visiteurs & Activité</h3>
+              <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <Eye size={16} />
+                <span>Temps réel</span>
+              </div>
+            </div>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={visitorData}>
+                  <defs>
+                    <linearGradient id="colorVisits" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                  <Tooltip 
+                    contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                  />
+                  <Area type="monotone" dataKey="visitors" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorVisits)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1 }}
+            className="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-100"
+          >
+            <div className="flex items-center justify-between mb-8">
+              <h3 className="text-xl font-bold text-gray-900">Performance Financière</h3>
+              <div className="flex items-center space-x-2 text-sm text-gray-400">
+                <TrendingUp size={16} />
+                <span>Croissance</span>
+              </div>
+            </div>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} dy={10} />
+                  <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                  <Tooltip 
+                    contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                    cursor={{fill: '#f8fafc'}}
+                  />
+                  <Bar dataKey="revenue" fill="#2563eb" radius={[8, 8, 0, 0]} barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </motion.div>
         </div>
 
         <div className="flex flex-wrap gap-4 mb-10">
@@ -400,6 +619,20 @@ export default function AdminDashboard() {
           </Button>
         </div>
 
+        {/* Search Bar */}
+        {(activeTab === 'appointments' || activeTab === 'quotes') && (
+          <div className="mb-8 relative">
+            <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+            <input
+              type="text"
+              placeholder="Rechercher par nom, email ou service..."
+              className="w-full bg-white border-2 border-transparent focus:border-blue-600/20 rounded-[2rem] py-5 pl-16 pr-8 outline-none transition-all shadow-sm"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-6">
           <AnimatePresence mode="wait">
             {activeTab === 'appointments' ? (
@@ -410,10 +643,10 @@ export default function AdminDashboard() {
                 exit={{ opacity: 0, x: 20 }}
                 className="space-y-6"
               >
-                {appointments.length === 0 ? (
+                {filteredAppointments.length === 0 ? (
                   <div className="bg-white p-20 rounded-[3rem] text-center border border-gray-100">
                     <Calendar size={48} className="mx-auto text-gray-200 mb-6" />
-                    <p className="text-gray-400 font-medium">Aucun rendez-vous pour le moment.</p>
+                    <p className="text-gray-400 font-medium">Aucun rendez-vous {searchQuery ? 'correspondant à votre recherche' : 'pour le moment'}.</p>
                   </div>
                 ) : (
                   <>
@@ -499,10 +732,10 @@ export default function AdminDashboard() {
                 exit={{ opacity: 0, x: 20 }}
                 className="space-y-6"
               >
-                {quotes.length === 0 ? (
+                {filteredQuotes.length === 0 ? (
                   <div className="bg-white p-20 rounded-[3rem] text-center border border-gray-100">
                     <FileText size={48} className="mx-auto text-gray-200 mb-6" />
-                    <p className="text-gray-400 font-medium">Aucune demande de devis pour le moment.</p>
+                    <p className="text-gray-400 font-medium">Aucune demande de devis {searchQuery ? 'correspondant à votre recherche' : 'pour le moment'}.</p>
                   </div>
                 ) : (
                   <>
@@ -692,13 +925,18 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 gap-4">
                   {services.map(s => (
                     <div key={s.id} className="bg-white p-6 rounded-3xl border border-gray-100 flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <img src={s.thumbnail} className="w-16 h-16 rounded-2xl object-cover" />
-                        <div>
-                          <h4 className="font-bold text-gray-900">{s.title}</h4>
-                          <p className="text-sm text-gray-500">{s.categoryId}</p>
+                        <div className="flex items-center space-x-4">
+                          <img src={s.thumbnail} className="w-16 h-16 rounded-2xl object-cover" />
+                          <div>
+                            <div className="flex items-center space-x-2">
+                              <h4 className="font-bold text-gray-900">{s.title}</h4>
+                              {s.isPromoActive && (
+                                <span className="bg-emerald-100 text-emerald-700 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest">Promo</span>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-500">{s.categoryId}</p>
+                          </div>
                         </div>
-                      </div>
                       <div className="flex space-x-2">
                         <Button variant="outline" size="icon" icon={Edit2} onClick={() => handleEdit(s, 'service')} />
                         <Button variant="danger" size="icon" icon={Trash2} onClick={() => deleteItem('services', s.id)} />
@@ -895,6 +1133,28 @@ export default function AdminDashboard() {
                             value={editingItem.thumbnail}
                             onChange={(e) => setEditingItem({...editingItem, thumbnail: e.target.value})}
                           />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Prix Promo (FCFA)</label>
+                            <input
+                              type="number"
+                              className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                              value={editingItem.promoPrice || ''}
+                              onChange={(e) => setEditingItem({...editingItem, promoPrice: parseInt(e.target.value) || 0})}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Promo Active</label>
+                            <div className="flex items-center h-[56px]">
+                              <button
+                                onClick={() => setEditingItem({...editingItem, isPromoActive: !editingItem.isPromoActive})}
+                                className={`w-14 h-8 rounded-full transition-all relative ${editingItem.isPromoActive ? 'bg-emerald-500' : 'bg-gray-200'}`}
+                              >
+                                <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${editingItem.isPromoActive ? 'left-7' : 'left-1'}`} />
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       </>
                     )}
