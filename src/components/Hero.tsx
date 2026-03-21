@@ -67,7 +67,7 @@ export default function Hero() {
           >
             <div className="relative z-10 w-full max-w-[400px] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-blue-900/10 border-8 border-white transform rotate-2 hover:rotate-0 transition-transform duration-500">
               <img
-                src={hero.profileImage}
+                src="/profile.jpg"
                 alt={hero.title + " " + hero.subtitle}
                 className="w-full aspect-[4/5] object-cover"
                 referrerPolicy="no-referrer"
