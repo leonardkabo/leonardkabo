@@ -53,13 +53,22 @@ export default function Navbar() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center">
-          <Link to="/" className="flex items-center space-x-2 group">
-            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform">
-              {settings.logoText.charAt(0)}
+          <Link to="/" className="flex items-center space-x-3 group">
+            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-xl shadow-lg shadow-blue-600/20 group-hover:scale-110 transition-transform overflow-hidden">
+              {settings.logoImage ? (
+                <img src={settings.logoImage} alt="Logo" className="w-full h-full object-cover" />
+              ) : (
+                settings.logoText.charAt(0)
+              )}
             </div>
-            <span className="text-xl font-bold tracking-tight text-gray-900">
-              {settings.logoText.split('.')[0]}<span className="text-blue-600">.{settings.logoText.split('.')[1] || ''}</span>
-            </span>
+            <div className="flex flex-col">
+              <span className="text-xl font-black text-gray-900 tracking-tighter leading-none group-hover:text-blue-600 transition-colors">
+                {settings.logoText}
+              </span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] leading-none mt-1">
+                {settings.siteName}
+              </span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}

@@ -76,12 +76,27 @@
         "technologies": { "type": "array", "items": { "type": "string" } }
       },
       "required": ["title", "category", "image"]
+    },
+    "NewsItem": {
+      "title": "News Item",
+      "description": "An article in the news/blog section",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "author": { "type": "string" },
+        "readTime": { "type": "string" },
+        "createdAt": { "type": "number" },
+        "image": { "type": "string" }
+      },
+      "required": ["title", "body", "createdAt"]
     }
   },
   "firestore": {
     "/settings/site": { "schema": "SiteSettings", "description": "Global site configuration" },
     "/sections/hero": { "schema": "HeroSection", "description": "Hero section content" },
     "/services/{serviceId}": { "schema": "Service", "description": "List of services" },
-    "/portfolio/{itemId}": { "schema": "PortfolioItem", "description": "List of portfolio items" }
+    "/portfolio/{itemId}": { "schema": "PortfolioItem", "description": "List of portfolio items" },
+    "/news/{newsId}": { "schema": "NewsItem", "description": "List of news articles" }
   }
 }

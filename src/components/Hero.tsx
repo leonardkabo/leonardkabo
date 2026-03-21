@@ -63,9 +63,9 @@ export default function Hero() {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
-            className="relative"
+            className="relative flex justify-center lg:justify-end"
           >
-            <div className="relative z-10 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-blue-900/10 border-8 border-white transform rotate-2 hover:rotate-0 transition-transform duration-500">
+            <div className="relative z-10 w-full max-w-[400px] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-blue-900/10 border-8 border-white transform rotate-2 hover:rotate-0 transition-transform duration-500">
               <img
                 src={hero.profileImage}
                 alt={hero.title + " " + hero.subtitle}
@@ -75,14 +75,18 @@ export default function Hero() {
             </div>
             
             {/* Floating Stats */}
-            <div className="absolute -bottom-6 -left-6 z-20 space-y-4">
+            <div className="absolute inset-0 z-20 pointer-events-none">
               {hero.stats?.map((stat: any, idx: number) => (
                 <motion.div
                   key={idx}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 + (idx * 0.2) }}
-                  className="bg-white p-6 rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100"
+                  className={`absolute bg-white p-6 rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 pointer-events-auto ${
+                    stat.label.toLowerCase().includes('livre') || stat.label.toLowerCase().includes('book')
+                      ? '-top-6 -right-6' 
+                      : '-bottom-6 -left-6'
+                  }`}
                 >
                   <div className="flex items-center space-x-4">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl ${

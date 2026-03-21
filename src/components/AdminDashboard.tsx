@@ -31,16 +31,20 @@ export default function AdminDashboard() {
   const [quotes, setQuotes] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'content' | 'services' | 'portfolio' | 'settings'>('appointments');
+  const [news, setNews] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'content' | 'services' | 'portfolio' | 'news' | 'settings'>('appointments');
   const [loading, setLoading] = useState(true);
   
-  // Content States
+  // Edit States
+  const [editingItem, setEditingItem] = useState<any>(null);
+  const [editType, setEditType] = useState<'service' | 'portfolio' | 'news' | null>(null);
   const [siteSettings, setSiteSettings] = useState<any>({
     siteName: SITE_NAME,
     siteTitle: SITE_TITLE,
     contactEmail: CONTACT_EMAIL,
     socialLinks: SOCIAL_LINKS,
-    logoText: 'L. KABO'
+    logoText: 'L. KABO',
+    logoImage: '/favicon.svg'
   });
   
   const [heroContent, setHeroContent] = useState<any>({
@@ -74,8 +78,10 @@ export default function AdminDashboard() {
   useEffect(() => {
     const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       if (!user || user.email !== 'leonardkabo32@gmail.com') {
+        console.log('User not authorized or not logged in:', user?.email);
         navigate('/admin/login');
       } else {
+        console.log('User logged in as admin:', user.email, 'Verified:', user.emailVerified);
         setUser(user);
       }
     });
@@ -104,14 +110,18 @@ export default function AdminDashboard() {
       setPortfolio(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'portfolio'));
 
+    const unsubNews = onSnapshot(query(collection(db, 'news'), orderBy('createdAt', 'desc')), (snapshot) => {
+      setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'news'));
+
     // Fetch single docs
     onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
       if (docSnap.exists()) setSiteSettings(docSnap.data());
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/site'));
 
     onSnapshot(doc(db, 'sections', 'hero'), (docSnap) => {
       if (docSnap.exists()) setHeroContent(docSnap.data());
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'sections/hero'));
 
     getDoc(doc(db, 'settings', 'mapConfig')).then((docSnap) => {
       if (docSnap.exists()) {
@@ -125,6 +135,7 @@ export default function AdminDashboard() {
       unsubQuotes();
       unsubServices();
       unsubPortfolio();
+      unsubNews();
     };
   }, [user]);
 
@@ -176,6 +187,40 @@ export default function AdminDashboard() {
     } catch (e) { handleFirestoreError(e, OperationType.CREATE, 'portfolio'); }
   };
 
+  const handleAddNews = async () => {
+    const title = prompt('Titre de l\'article ?');
+    if (!title) return;
+    try {
+      await addDoc(collection(db, 'news'), {
+        title,
+        body: 'Contenu de l\'article...',
+        author: 'L. KABO',
+        readTime: '5 min',
+        createdAt: Date.now(),
+        image: 'https://picsum.photos/seed/news/800/600'
+      });
+    } catch (e) { handleFirestoreError(e, OperationType.CREATE, 'news'); }
+  };
+
+  const handleEdit = (item: any, type: 'service' | 'portfolio' | 'news') => {
+    setEditingItem({ ...item });
+    setEditType(type);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingItem || !editType) return;
+    setSaving(true);
+    try {
+      const collectionName = editType === 'service' ? 'services' : editType === 'portfolio' ? 'portfolio' : 'news';
+      const { id, ...data } = editingItem;
+      await updateDoc(doc(db, collectionName, id), data);
+      setEditingItem(null);
+      setEditType(null);
+      alert('Élément mis à jour !');
+    } catch (e) { handleFirestoreError(e, OperationType.UPDATE, `${editType}/${editingItem.id}`); }
+    setSaving(false);
+  };
+
   const initializeData = async () => {
     if (!window.confirm('Voulez-vous initialiser la base de données avec les données par défaut ?')) return;
     setSaving(true);
@@ -201,6 +246,28 @@ export default function AdminDashboard() {
           description: p.description,
           technologies: p.technologies
         });
+      }
+      // Initialize News
+      const defaultNews = [
+        {
+          title: "Lancement de mon nouveau site portfolio",
+          body: "Je suis ravi de vous présenter mon nouveau site web dynamique, conçu pour mieux vous servir.",
+          author: "L. KABO",
+          readTime: "3 min",
+          createdAt: Date.now(),
+          image: "https://picsum.photos/seed/news1/800/600"
+        },
+        {
+          title: "L'importance de la transformation numérique",
+          body: "Dans un monde en constante évolution, la transformation numérique est devenue une nécessité pour toutes les organisations.",
+          author: "L. KABO",
+          readTime: "5 min",
+          createdAt: Date.now() - 86400000,
+          image: "https://picsum.photos/seed/news2/800/600"
+        }
+      ];
+      for (const n of defaultNews) {
+        await addDoc(collection(db, 'news'), n);
       }
       alert('Données initialisées avec succès !');
     } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'initialization'); }
@@ -316,6 +383,13 @@ export default function AdminDashboard() {
             icon={ImageIcon}
           >
             Portfolio ({portfolio.length})
+          </Button>
+          <Button
+            variant={activeTab === 'news' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('news')}
+            icon={FileText}
+          >
+            Actualités ({news.length})
           </Button>
           <Button
             variant={activeTab === 'settings' ? 'primary' : 'outline'}
@@ -545,6 +619,14 @@ export default function AdminDashboard() {
                         onChange={(e) => setSiteSettings({...siteSettings, logoText: e.target.value})}
                       />
                     </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image Logo (URL)</label>
+                      <input
+                        className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                        value={siteSettings.logoImage}
+                        onChange={(e) => setSiteSettings({...siteSettings, logoImage: e.target.value})}
+                      />
+                    </div>
                   </div>
                   <Button onClick={handleSaveSiteSettings} isLoading={saving} icon={Save}>Enregistrer les Paramètres</Button>
                 </div>
@@ -618,7 +700,7 @@ export default function AdminDashboard() {
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        <Button variant="outline" size="icon" icon={Edit2} />
+                        <Button variant="outline" size="icon" icon={Edit2} onClick={() => handleEdit(s, 'service')} />
                         <Button variant="danger" size="icon" icon={Trash2} onClick={() => deleteItem('services', s.id)} />
                       </div>
                     </div>
@@ -646,7 +728,40 @@ export default function AdminDashboard() {
                           <h4 className="font-bold text-gray-900">{p.title}</h4>
                           <p className="text-sm text-gray-500">{p.category}</p>
                         </div>
-                        <Button variant="danger" size="icon" icon={Trash2} onClick={() => deleteItem('portfolio', p.id)} />
+                        <div className="flex space-x-2">
+                          <Button variant="outline" size="icon" icon={Edit2} onClick={() => handleEdit(p, 'portfolio')} />
+                          <Button variant="danger" size="icon" icon={Trash2} onClick={() => deleteItem('portfolio', p.id)} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : activeTab === 'news' ? (
+              <motion.div
+                key="news-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold">Gestion des Actualités</h2>
+                  <Button onClick={handleAddNews} icon={Plus} size="sm">Ajouter un Article</Button>
+                </div>
+                <div className="grid grid-cols-1 gap-4">
+                  {news.map(n => (
+                    <div key={n.id} className="bg-white p-6 rounded-3xl border border-gray-100 flex items-center justify-between">
+                      <div className="flex items-center space-x-4">
+                        <img src={n.image} className="w-16 h-16 rounded-2xl object-cover" />
+                        <div>
+                          <h4 className="font-bold text-gray-900">{n.title}</h4>
+                          <p className="text-sm text-gray-500">{new Date(n.createdAt).toLocaleDateString()}</p>
+                        </div>
+                      </div>
+                      <div className="flex space-x-2">
+                        <Button variant="outline" size="icon" icon={Edit2} onClick={() => handleEdit(n, 'news')} />
+                        <Button variant="danger" size="icon" icon={Trash2} onClick={() => deleteItem('news', n.id)} />
                       </div>
                     </div>
                   ))}
@@ -718,6 +833,147 @@ export default function AdminDashboard() {
                   </Button>
                 </div>
               </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Edit Modal */}
+          <AnimatePresence>
+            {editingItem && (
+              <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                  onClick={() => setEditingItem(null)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                  className="relative bg-white w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden"
+                >
+                  <div className="p-8 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                    <h3 className="text-2xl font-bold text-gray-900">Modifier {editType}</h3>
+                    <button onClick={() => setEditingItem(null)} className="p-2 hover:bg-white rounded-full transition-colors">
+                      <X size={24} className="text-gray-400" />
+                    </button>
+                  </div>
+                  
+                  <div className="p-8 max-h-[70vh] overflow-y-auto space-y-6">
+                    {editType === 'service' && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Titre</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={editingItem.title}
+                            onChange={(e) => setEditingItem({...editingItem, title: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Slogan (Tagline)</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={editingItem.tagline}
+                            onChange={(e) => setEditingItem({...editingItem, tagline: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Description Courte</label>
+                          <textarea
+                            rows={3}
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none resize-none"
+                            value={editingItem.shortDesc}
+                            onChange={(e) => setEditingItem({...editingItem, shortDesc: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image (URL)</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={editingItem.thumbnail}
+                            onChange={(e) => setEditingItem({...editingItem, thumbnail: e.target.value})}
+                          />
+                        </div>
+                      </>
+                    )}
+                    
+                    {editType === 'portfolio' && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Titre</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={editingItem.title}
+                            onChange={(e) => setEditingItem({...editingItem, title: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Catégorie</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={editingItem.category}
+                            onChange={(e) => setEditingItem({...editingItem, category: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Description</label>
+                          <textarea
+                            rows={3}
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none resize-none"
+                            value={editingItem.description}
+                            onChange={(e) => setEditingItem({...editingItem, description: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image (URL)</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={editingItem.image}
+                            onChange={(e) => setEditingItem({...editingItem, image: e.target.value})}
+                          />
+                        </div>
+                      </>
+                    )}
+                    
+                    {editType === 'news' && (
+                      <>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Titre</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={editingItem.title}
+                            onChange={(e) => setEditingItem({...editingItem, title: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Contenu</label>
+                          <textarea
+                            rows={6}
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none resize-none"
+                            value={editingItem.body}
+                            onChange={(e) => setEditingItem({...editingItem, body: e.target.value})}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image (URL)</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={editingItem.image}
+                            onChange={(e) => setEditingItem({...editingItem, image: e.target.value})}
+                          />
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  
+                  <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex justify-end space-x-4">
+                    <Button variant="outline" onClick={() => setEditingItem(null)}>Annuler</Button>
+                    <Button onClick={handleSaveEdit} isLoading={saving} icon={Save}>Enregistrer les modifications</Button>
+                  </div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>
 

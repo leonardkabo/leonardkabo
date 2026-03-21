@@ -1,8 +1,38 @@
 import { useState, useEffect } from 'react';
-import { db } from '../firebase';
+import { db, auth } from '../firebase';
 import { doc, onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { CONFIG, SERVICE_CATEGORIES, servicesData as staticServices, portfolioItems as staticPortfolio } from '../data';
 import { SITE_NAME, SITE_TITLE, CONTACT_EMAIL, SOCIAL_LINKS } from '../constants';
+
+enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: any;
+}
+
+function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+    },
+    operationType,
+    path
+  }
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+}
 
 export interface SiteSettings {
   siteName: string;
@@ -15,6 +45,7 @@ export interface SiteSettings {
     whatsapp: string;
   };
   logoText: string;
+  logoImage?: string;
 }
 
 export interface HeroContent {
@@ -55,6 +86,16 @@ export interface PortfolioItem {
   technologies: string[];
 }
 
+export interface NewsItem {
+  id: string;
+  title: string;
+  body: string;
+  author: string;
+  readTime: string;
+  createdAt: number;
+  image: string;
+}
+
 export function useSiteData() {
   const [settings, setSettings] = useState<SiteSettings>({
     siteName: SITE_NAME,
@@ -82,6 +123,7 @@ export function useSiteData() {
 
   const [services, setServices] = useState<any[]>(staticServices);
   const [portfolio, setPortfolio] = useState<any[]>(staticPortfolio);
+  const [news, setNews] = useState<NewsItem[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -89,27 +131,34 @@ export function useSiteData() {
       if (docSnap.exists()) {
         setSettings(docSnap.data() as SiteSettings);
       }
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/site'));
 
     const unsubHero = onSnapshot(doc(db, 'sections', 'hero'), (docSnap) => {
       if (docSnap.exists()) {
         setHero(docSnap.data() as HeroContent);
       }
-    });
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'sections/hero'));
 
     const qServices = query(collection(db, 'services'), orderBy('priority', 'asc'));
     const unsubServices = onSnapshot(qServices, (snapshot) => {
       if (!snapshot.empty) {
         setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       }
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'services'));
 
     const qPortfolio = query(collection(db, 'portfolio'));
     const unsubPortfolio = onSnapshot(qPortfolio, (snapshot) => {
       if (!snapshot.empty) {
         setPortfolio(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       }
-    });
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'portfolio'));
+
+    const qNews = query(collection(db, 'news'), orderBy('createdAt', 'desc'));
+    const unsubNews = onSnapshot(qNews, (snapshot) => {
+      if (!snapshot.empty) {
+        setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as NewsItem)));
+      }
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'news'));
 
     setLoading(false);
 
@@ -118,8 +167,9 @@ export function useSiteData() {
       unsubHero();
       unsubServices();
       unsubPortfolio();
+      unsubNews();
     };
   }, []);
 
-  return { settings, hero, services, portfolio, loading };
+  return { settings, hero, services, portfolio, news, loading };
 }
