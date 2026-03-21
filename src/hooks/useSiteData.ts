@@ -114,7 +114,7 @@ export function useSiteData() {
     ctaLink: "/services",
     secondaryCtaText: "Me Contacter",
     secondaryCtaLink: "/contact",
-    profileImage: "/profile.jpg",
+    profileImage: "https://picsum.photos/seed/profile/800/800",
     stats: [
       { value: "5+", label: "Ans d'Expertise", sublabel: "Expérience Pro", color: "blue" },
       { value: "2", label: "Livres Publiés", sublabel: "Auteur Engagé", color: "emerald" }

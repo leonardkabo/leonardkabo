@@ -96,7 +96,7 @@ service cloud.firestore {
 
     function isValidEmail(email) {
       return email is string &&
-        email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+        email.matches(".+@.+\\..+");
     }
 
     function hasOnlyAllowedFields(fields) {
@@ -139,16 +139,14 @@ service cloud.firestore {
 
     // Publicly writable (for submissions), admin readable/writable
     match /appointments/{docId} {
-      allow create: if hasOnlyAllowedFields(['name', 'email', 'phone', 'date', 'time', 'service', 'message', 'status', 'createdAt']) &&
-                      request.resource.data.name is string &&
+      allow create: if request.resource.data.name is string &&
                       isValidEmail(request.resource.data.email) &&
                       request.resource.data.status == 'pending';
       allow read, update, delete: if isAdmin();
     }
 
     match /quotes/{docId} {
-      allow create: if hasOnlyAllowedFields(['name', 'email', 'company', 'service', 'budget', 'description', 'status', 'createdAt']) &&
-                      request.resource.data.name is string &&
+      allow create: if request.resource.data.name is string &&
                       isValidEmail(request.resource.data.email) &&
                       request.resource.data.status == 'pending';
       allow read, update, delete: if isAdmin();

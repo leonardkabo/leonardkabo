@@ -29,6 +29,10 @@ function ScrollToTop() {
 import MapSection from './components/MapSection';
 import BlogSection from './components/BlogSection';
 
+import NewsList from './components/NewsList';
+import NewsDetail from './components/NewsDetail';
+import LegalPage from './components/LegalPage';
+
 function PageWrapper({ children }: { children: React.ReactNode }) {
   return (
     <motion.div
@@ -135,6 +139,52 @@ export default function App() {
                 element={
                   <PageWrapper>
                     <AdminDashboard />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/livres"
+                element={
+                  <PageWrapper>
+                    <NewsList />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/news"
+                element={
+                  <PageWrapper>
+                    <NewsList />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/blog/:id"
+                element={
+                  <PageWrapper>
+                    <NewsDetail />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/mentions-legales"
+                element={
+                  <PageWrapper>
+                    <LegalPage 
+                      title="Mentions Légales" 
+                      content={`Éditeur du site : Eboun Léonard KABO\nContact : leonardkabo32@gmail.com\nHébergement : Google Cloud Platform\n\nPropriété intellectuelle : L'ensemble des contenus de ce site est protégé par le droit d'auteur.`} 
+                    />
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/confidentialite"
+                element={
+                  <PageWrapper>
+                    <LegalPage 
+                      title="Politique de Confidentialité" 
+                      content={`Collecte des données : Nous collectons vos données via les formulaires de contact et de rendez-vous uniquement pour répondre à vos demandes.\n\nUtilisation des données : Vos données ne sont jamais partagées avec des tiers.\n\nVos droits : Vous disposez d'un droit d'accès, de rectification et de suppression de vos données personnelles.`} 
+                    />
                   </PageWrapper>
                 }
               />

@@ -3,39 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { BookOpen, ArrowRight, Clock, User } from 'lucide-react';
+import { ArrowRight, Clock, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from './ui/Button';
-
-interface BlogPost {
-  id: number;
-  title: string;
-  body: string;
-  userId: number;
-}
+import { useSiteData } from '../hooks/useSiteData';
 
 export default function BlogSection() {
-  const [posts, setPosts] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
-        // Fetching from JSONPlaceholder as a mock external API
-        const response = await fetch('https://jsonplaceholder.typicode.com/posts?_limit=3');
-        const data = await response.json();
-        setPosts(data);
-      } catch (error) {
-        console.error('Error fetching blog posts:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPosts();
-  }, []);
+  const { news, loading } = useSiteData();
 
   return (
     <section className="py-24 bg-white overflow-hidden">
@@ -79,7 +54,7 @@ export default function BlogSection() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {posts.map((post, index) => (
+            {news.slice(0, 3).map((post, index) => (
               <motion.article
                 key={post.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -88,14 +63,25 @@ export default function BlogSection() {
                 transition={{ delay: index * 0.1 }}
                 className="group bg-gray-50 rounded-[2.5rem] p-8 border border-transparent hover:border-blue-600/10 hover:bg-white hover:shadow-2xl hover:shadow-blue-900/5 transition-all duration-500 flex flex-col h-full"
               >
+                {post.image && (
+                  <div className="aspect-video rounded-3xl overflow-hidden mb-6">
+                    <img 
+                      src={post.image} 
+                      alt={post.title} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                    />
+                  </div>
+                )}
+                
                 <div className="flex items-center space-x-4 mb-6 text-xs font-bold text-gray-400 uppercase tracking-widest">
                   <div className="flex items-center space-x-1">
                     <Clock size={14} />
-                    <span>5 min read</span>
+                    <span>{post.readTime || '5 min'}</span>
                   </div>
                   <div className="flex items-center space-x-1">
                     <User size={14} />
-                    <span>Léonard Kabo</span>
+                    <span>{post.author || 'Léonard Kabo'}</span>
                   </div>
                 </div>
                 

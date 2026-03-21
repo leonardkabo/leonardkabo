@@ -60,11 +60,11 @@ export const servicesData = [
         slug: "production-multimedia-de-prestige",
         tagline: "Capturer l'invisible, immortaliser l'instant",
         shortDesc: "Prises de vue professionnelle, photo et vidéo pour tous vos évènements marquants.",
-        thumbnail: "/images/services/multimedia.jpg",
+        thumbnail: "https://picsum.photos/seed/multimedia/800/600",
         gallery: [
-            "/images/services/multimedia-1.jpg",
-            "/images/services/multimedia-2.jpg",
-            "/images/services/multimedia-3.jpg"
+            "https://picsum.photos/seed/multimedia1/800/600",
+            "https://picsum.photos/seed/multimedia2/800/600",
+            "https://picsum.photos/seed/multimedia3/800/600"
         ],
         pricing: {
             basePrice: 50000,
@@ -125,7 +125,7 @@ export const servicesData = [
         slug: "developpement-web-applications",
         tagline: "Solutions robustes, évolutives et centrées utilisateur",
         shortDesc: "Conception de sites vitrines et applications web sur mesure haute performance.",
-        thumbnail: "/images/services/webdev.jpg",
+        thumbnail: "https://picsum.photos/seed/webdev/800/600",
         pricing: {
             basePrice: 150000,
             currency: CONFIG.currency,
@@ -166,7 +166,7 @@ export const servicesData = [
         slug: "automatisation-ia",
         tagline: "L'era de l'efficacité",
         shortDesc: "Gagnez du temps avec des outils qui travaillent pour vous 24h/24.",
-        thumbnail: "/images/services/automation.jpg",
+        thumbnail: "https://picsum.photos/seed/automation/800/600",
         pricing: {
             basePrice: 25000,
             packages: [
@@ -190,7 +190,7 @@ export const servicesData = [
         slug: "design-graphique",
         tagline: "Visual Storytelling",
         shortDesc: "Identité visuelle, logos et supports marketing percutants.",
-        thumbnail: "/images/services/design.jpg",
+        thumbnail: "https://picsum.photos/seed/design/800/600",
         pricing: {
             basePrice: 20000,
             packages: [
@@ -214,7 +214,7 @@ export const servicesData = [
         slug: "com-journalisme",
         tagline: "L'info, notre métier",
         shortDesc: "Rédaction web, animation radio et gestion de communication institutionnelle.",
-        thumbnail: "/images/services/journalism.jpg",
+        thumbnail: "https://picsum.photos/seed/journalism/800/600",
         pricing: {
             basePrice: 15000,
             packages: [
@@ -238,7 +238,7 @@ export const portfolioItems = [
         id: 1,
         title: "Plateforme Digitale HAI",
         category: "web",
-        image: "/images/portfolio/hai.jpg",
+        image: "https://picsum.photos/seed/hai/800/600",
         description: "Conception d'une plateforme de suivi pour l'ONG Health Access Initiative.",
         technologies: ["HTML/CSS", "JavaScript", "PHP", "MySQL"]
     },
@@ -246,7 +246,7 @@ export const portfolioItems = [
         id: 2,
         title: "Identité Visuelle Pro",
         category: "design",
-        image: "/images/portfolio/branding.jpg",
+        image: "https://picsum.photos/seed/branding/800/600",
         description: "Charte graphique complète pour un programme de santé communautaire.",
         technologies: ["Photoshop", "Illustrator", "InDesign"]
     },
@@ -254,7 +254,7 @@ export const portfolioItems = [
         id: 3,
         title: "Reportage Mariage Prestige",
         category: "media",
-        image: "/images/portfolio/wedding.jpg",
+        image: "https://picsum.photos/seed/wedding/800/600",
         description: "Production de contenus audiovisuels pour événements.",
         technologies: ["Premiere Pro", "After Effects", "Photoshop"]
     }
