@@ -37,6 +37,7 @@ type FormData = yup.InferType<typeof schema>;
 export default function QuoteForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [submittedName, setSubmittedName] = useState('');
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
@@ -50,11 +51,12 @@ export default function QuoteForm() {
       path
     };
     console.error('Firestore Error: ', JSON.stringify(errInfo));
-    throw new Error(JSON.stringify(errInfo));
+    setError("Une erreur est survenue lors de l'envoi. Veuillez réessayer.");
   };
 
   const onSubmit = async (data: FormData) => {
     setLoading(true);
+    setError(null);
     setSubmittedName(data.name);
     
     const path = 'quotes';
@@ -77,9 +79,10 @@ export default function QuoteForm() {
       }).catch(err => console.error('Backend notification failed:', err));
 
       setSubmitted(true);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       reset();
-    } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, path);
+    } catch (err) {
+      handleFirestoreError(err, OperationType.WRITE, path);
     } finally {
       setLoading(false);
     }
@@ -222,6 +225,17 @@ export default function QuoteForm() {
               </div>
             </div>
           </div>
+
+          {error && (
+            <motion.div 
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="p-4 bg-red-50 border border-red-100 rounded-2xl flex items-center space-x-3 text-red-600"
+            >
+              <AlertCircle size={20} />
+              <p className="text-sm font-medium">{error}</p>
+            </motion.div>
+          )}
 
           <Button
             disabled={loading}

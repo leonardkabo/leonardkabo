@@ -10,11 +10,11 @@ import { Link } from 'react-router-dom';
 import Button from './ui/Button';
 
 const iconMap: Record<string, any> = {
-  Camera,
-  Code,
-  Bot,
-  Palette,
-  Mic,
+  'multimedia': Camera,
+  'web-dev': Code,
+  'automation': Bot,
+  'design': Palette,
+  'com-journalism': Mic,
 };
 
 export default function ServicesGrid() {
@@ -63,7 +63,8 @@ export default function ServicesGrid() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {services.map((service, index) => {
-            const Icon = iconMap[service.categoryId] || Code;
+            const categoryId = service.categoryId || service.category?.id;
+            const Icon = iconMap[categoryId] || Code;
             return (
               <motion.div
                 key={service.id}
@@ -74,52 +75,66 @@ export default function ServicesGrid() {
               >
                 <Link
                   to={`/services/${service.slug}`}
-                  className="group block h-full relative bg-white p-8 rounded-[2.5rem] border border-blue-100 hover:border-blue-500/50 shadow-xl shadow-blue-900/5 hover:shadow-blue-600/10 hover:-translate-y-2 transition-all duration-500"
+                  className="group block h-full relative bg-white rounded-[2.5rem] border border-blue-100 hover:border-blue-500/50 shadow-xl shadow-blue-900/5 hover:shadow-blue-600/10 hover:-translate-y-2 transition-all duration-500 overflow-hidden flex flex-col"
                 >
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-8 bg-blue-50 text-blue-600 group-hover:scale-110 transition-transform duration-500 relative`}>
-                    <Icon size={28} />
+                  {/* Service Image - Minimal strip (~10% of height) */}
+                  <div className="relative h-14 overflow-hidden shrink-0">
+                    <img 
+                      src={service.thumbnail || `https://picsum.photos/seed/${service.id}/800/600`} 
+                      alt={service.title}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80"
+                      referrerPolicy="no-referrer"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-r from-blue-600/20 to-transparent" />
+                    
+                    <div className={`absolute top-1/2 left-6 -translate-y-1/2 w-8 h-8 rounded-lg flex items-center justify-center bg-white/90 backdrop-blur-sm text-blue-600 shadow-sm transition-transform duration-500 group-hover:scale-110`}>
+                      <Icon size={16} />
+                    </div>
+
                     {service.isPromoActive && (
-                      <span className="absolute -top-2 -right-2 bg-emerald-500 text-white text-[8px] font-black px-1.5 py-0.5 rounded-lg uppercase tracking-tighter shadow-lg shadow-emerald-500/20">
+                      <span className="absolute top-1/2 right-6 -translate-y-1/2 bg-emerald-500 text-white text-[7px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider shadow-sm">
                         Promo
                       </span>
                     )}
                   </div>
 
-                  <h3 className="text-2xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors">
-                    {service.title}
-                  </h3>
-                  
-                  <p className="text-slate-600 mb-8 leading-relaxed line-clamp-2">
-                    {service.shortDesc}
-                  </p>
-
-                  <div className="flex items-center justify-between mt-auto pt-6 border-t border-slate-100">
-                    <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                        {service.isPromoActive ? 'Offre Spéciale' : 'À partir de'}
-                      </span>
-                      <div className="flex items-baseline gap-2">
-                        <span className={`text-xl font-black ${service.isPromoActive ? 'text-emerald-600' : 'text-slate-900'} group-hover:text-blue-600 transition-colors`}>
-                          {service.isPromoActive ? service.promoPrice : service.pricing?.basePrice} {service.pricing?.currency || 'FCFA'}
-                        </span>
-                        {service.isPromoActive && service.pricing?.basePrice && (
-                          <span className="text-sm text-slate-400 line-through font-medium">
-                            {service.pricing.basePrice}
-                          </span>
-                        )}
-                      </div>
-                    </div>
+                  <div className="p-8 flex-1 flex flex-col">
+                    <h3 className="text-2xl font-bold text-slate-900 mb-4 group-hover:text-blue-600 transition-colors">
+                      {service.title}
+                    </h3>
                     
-                    {service.isPromoActive && service.pricing?.basePrice && service.promoPrice && (
-                      <div className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg text-[10px] font-bold">
-                        -{Math.round(((service.pricing.basePrice - service.promoPrice) / service.pricing.basePrice) * 100)}%
-                      </div>
-                    )}
+                    <p className="text-slate-600 mb-8 leading-relaxed line-clamp-2">
+                      {service.shortDesc}
+                    </p>
 
-                    <div
-                      className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg shadow-transparent group-hover:shadow-blue-600/20"
-                    >
-                      <ArrowRight size={20} />
+                    <div className="flex items-center justify-between mt-auto pt-6 border-t border-slate-100">
+                      <div className="flex flex-col">
+                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                          {service.isPromoActive ? 'Offre Spéciale' : 'À partir de'}
+                        </span>
+                        <div className="flex items-baseline gap-2">
+                          <span className={`text-xl font-black ${service.isPromoActive ? 'text-emerald-600' : 'text-slate-900'} group-hover:text-blue-600 transition-colors`}>
+                            {service.isPromoActive ? service.promoPrice : service.pricing?.basePrice} {service.pricing?.currency || 'FCFA'}
+                          </span>
+                          {service.isPromoActive && service.pricing?.basePrice && (
+                            <span className="text-sm text-slate-400 line-through font-medium">
+                              {service.pricing.basePrice}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {service.isPromoActive && service.pricing?.basePrice && service.promoPrice && (
+                        <div className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg text-[10px] font-bold">
+                          -{Math.round(((service.pricing.basePrice - service.promoPrice) / service.pricing.basePrice) * 100)}%
+                        </div>
+                      )}
+
+                      <div
+                        className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg shadow-transparent group-hover:shadow-blue-600/20"
+                      >
+                        <ArrowRight size={20} />
+                      </div>
                     </div>
                   </div>
                 </Link>

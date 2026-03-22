@@ -60,7 +60,7 @@ export const servicesData = [
         slug: "production-multimedia-de-prestige",
         tagline: "Capturer l'invisible, immortaliser l'instant",
         shortDesc: "Prises de vue professionnelle, photo et vidéo pour tous vos évènements marquants.",
-        thumbnail: "https://picsum.photos/seed/multimedia/800/600",
+        thumbnail: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=800",
         promoPrice: 45000,
         isPromoActive: true,
         gallery: [
@@ -127,7 +127,7 @@ export const servicesData = [
         slug: "developpement-web-applications",
         tagline: "Solutions robustes, évolutives et centrées utilisateur",
         shortDesc: "Conception de sites vitrines et applications web sur mesure haute performance.",
-        thumbnail: "https://picsum.photos/seed/webdev/800/600",
+        thumbnail: "https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&q=80&w=800",
         pricing: {
             basePrice: 150000,
             currency: CONFIG.currency,
@@ -168,7 +168,7 @@ export const servicesData = [
         slug: "automatisation-ia",
         tagline: "L'era de l'efficacité",
         shortDesc: "Gagnez du temps avec des outils qui travaillent pour vous 24h/24.",
-        thumbnail: "https://picsum.photos/seed/automation/800/600",
+        thumbnail: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=800",
         pricing: {
             basePrice: 25000,
             packages: [
@@ -192,7 +192,7 @@ export const servicesData = [
         slug: "design-graphique",
         tagline: "Visual Storytelling",
         shortDesc: "Identité visuelle, logos et supports marketing percutants.",
-        thumbnail: "https://picsum.photos/seed/design/800/600",
+        thumbnail: "https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&q=80&w=800",
         pricing: {
             basePrice: 20000,
             packages: [
@@ -216,7 +216,7 @@ export const servicesData = [
         slug: "com-journalisme",
         tagline: "L'info, notre métier",
         shortDesc: "Rédaction web, animation radio et gestion de communication institutionnelle.",
-        thumbnail: "https://picsum.photos/seed/journalism/800/600",
+        thumbnail: "https://images.unsplash.com/photo-1472289065668-ce650ac443d2?auto=format&fit=crop&q=80&w=800",
         pricing: {
             basePrice: 15000,
             packages: [
