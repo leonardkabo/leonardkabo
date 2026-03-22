@@ -8,19 +8,32 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
+import dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Email Transporter Configuration
-// This will use the environment variables provided in AI Studio
-const transporter = nodemailer.createTransport({
-  service: 'gmail', // You can change this to your email provider (e.g., 'SendGrid', 'Mailgun')
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS, // Use an App Password for Gmail
-  },
-});
+console.log('--- Server Configuration ---');
+console.log('NODE_ENV:', process.env.NODE_ENV);
+console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'Configured' : 'Missing');
+console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Configured' : 'Missing');
+console.log('---------------------------');
+
+// Function to create transporter (allows re-initialization if needed)
+const createTransporter = () => {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
+};
+
+let transporter = createTransporter();
 
 async function startServer() {
   const app = express();
@@ -48,23 +61,33 @@ async function startServer() {
     text += `\nDate de réception: ${new Date().toLocaleString('fr-FR')}`;
 
     try {
+      // Re-initialize transporter if it was created with empty env vars
+      if (!transporter.options.auth?.user && process.env.EMAIL_USER) {
+        transporter = createTransporter();
+      }
+
       // Only attempt to send if credentials are provided
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        await transporter.sendMail({
+        console.log('Attempting to send email to leonardkabo32@gmail.com...');
+        const info = await transporter.sendMail({
           from: `"Site Web Eboun Léonard" <${process.env.EMAIL_USER}>`,
           to: 'leonardkabo32@gmail.com',
           subject: subject,
           text: text,
           replyTo: email,
         });
-        console.log('Email notification sent successfully');
+        console.log('Email notification sent successfully:', info.messageId);
       } else {
-        console.warn('Email credentials not configured. Skipping email notification.');
+        console.warn('Email credentials not configured (EMAIL_USER or EMAIL_PASS missing). Skipping email notification.');
       }
       
       res.json({ success: true, message: 'Demande reçue avec succès' });
-    } catch (error) {
-      console.error('Error sending email:', error);
+    } catch (error: any) {
+      console.error('CRITICAL: Error sending email notification:');
+      console.error('Error Code:', error.code);
+      console.error('Error Message:', error.message);
+      if (error.response) console.error('SMTP Response:', error.response);
+      
       // We still return success to the user because the data is saved in Firestore
       res.json({ success: true, message: 'Demande reçue (erreur notification email)' });
     }
