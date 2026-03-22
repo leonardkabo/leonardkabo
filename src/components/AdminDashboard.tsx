@@ -30,10 +30,11 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [news, setNews] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'content' | 'services' | 'portfolio' | 'news' | 'settings' | 'promos'>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'contacts' | 'content' | 'services' | 'portfolio' | 'news' | 'settings' | 'promos'>('appointments');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -112,6 +113,10 @@ export default function AdminDashboard() {
       setQuotes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'quotes'));
 
+    const unsubContacts = onSnapshot(query(collection(db, 'contacts'), orderBy('createdAt', 'desc')), (snapshot) => {
+      setContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'contacts'));
+
     const unsubServices = onSnapshot(query(collection(db, 'services'), orderBy('priority', 'asc')), (snapshot) => {
       setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'services'));
@@ -143,6 +148,7 @@ export default function AdminDashboard() {
     return () => {
       unsubAppointments();
       unsubQuotes();
+      unsubContacts();
       unsubServices();
       unsubPortfolio();
       unsubNews();
@@ -416,7 +422,14 @@ export default function AdminDashboard() {
     item.service?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const currentItems = activeTab === 'appointments' ? filteredAppointments : filteredQuotes;
+  const filteredContacts = contacts.filter(item => 
+    item.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.subject?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    item.message?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const currentItems = activeTab === 'appointments' ? filteredAppointments : (activeTab === 'quotes' ? filteredQuotes : filteredContacts);
   const totalPages = Math.ceil(currentItems.length / ITEMS_PER_PAGE);
   const paginatedItems = currentItems.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
@@ -595,6 +608,13 @@ export default function AdminDashboard() {
             Devis ({quotes.length})
           </Button>
           <Button
+            variant={activeTab === 'contacts' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('contacts')}
+            icon={MessageSquare}
+          >
+            Messages ({contacts.length})
+          </Button>
+          <Button
             variant={activeTab === 'content' ? 'primary' : 'outline'}
             onClick={() => setActiveTab('content')}
             icon={Layout}
@@ -639,7 +659,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Search Bar */}
-        {(activeTab === 'appointments' || activeTab === 'quotes') && (
+        {(activeTab === 'appointments' || activeTab === 'quotes' || activeTab === 'contacts') && (
           <div className="mb-8 relative">
             <Search className="absolute left-6 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
             <input
@@ -825,6 +845,81 @@ export default function AdminDashboard() {
                             variant="danger"
                             size="icon"
                             onClick={() => deleteItem('quotes', item.id)}
+                            icon={Trash2}
+                            title="Supprimer"
+                          />
+                        </div>
+                      </motion.div>
+                    ))}
+                  </>
+                )}
+              </motion.div>
+            ) : activeTab === 'contacts' ? (
+              <motion.div
+                key="contacts-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                {filteredContacts.length === 0 ? (
+                  <div className="bg-white p-20 rounded-[3rem] text-center border border-gray-100">
+                    <MessageSquare size={48} className="mx-auto text-gray-200 mb-6" />
+                    <p className="text-gray-400 font-medium">Aucun message {searchQuery ? 'correspondant à votre recherche' : 'pour le moment'}.</p>
+                  </div>
+                ) : (
+                  <>
+                    {paginatedItems.map((item) => (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col md:flex-row gap-8 items-start md:items-center"
+                      >
+                        <div className="flex-1 space-y-4">
+                          <div className="flex items-center space-x-4">
+                            {isNew(item.createdAt) && (
+                              <div className="px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-blue-50 text-blue-600 animate-pulse">
+                                Nouveau
+                              </div>
+                            )}
+                            <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                              item.status === 'read' ? 'bg-emerald-50 text-emerald-600' : 'bg-amber-50 text-amber-600'
+                            }`}>
+                              {item.status === 'read' ? 'Lu' : 'Nouveau'}
+                            </div>
+                            <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                              {new Date(item.createdAt).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <h3 className="text-2xl font-bold text-gray-900">{item.name}</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+                            <div className="flex items-center space-x-2">
+                              <Mail size={16} className="text-blue-600" />
+                              <span>{item.email}</span>
+                            </div>
+                            <div className="flex items-center space-x-2 font-bold">
+                              <MessageSquare size={16} className="text-blue-600" />
+                              <span>Sujet: {item.subject}</span>
+                            </div>
+                          </div>
+                          <div className="bg-gray-50 p-6 rounded-2xl flex items-start space-x-3">
+                            <MessageSquare size={16} className="text-gray-400 mt-1 shrink-0" />
+                            <p className="text-sm text-gray-600 leading-relaxed">{item.message}</p>
+                          </div>
+                        </div>
+                        <div className="flex md:flex-col gap-2">
+                          <Button
+                            variant="success"
+                            size="icon"
+                            onClick={() => updateStatus('contacts', item.id, 'read')}
+                            icon={Check}
+                            title="Marquer comme lu"
+                          />
+                          <Button
+                            variant="danger"
+                            size="icon"
+                            onClick={() => deleteItem('contacts', item.id)}
                             icon={Trash2}
                             title="Supprimer"
                           />

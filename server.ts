@@ -69,14 +69,25 @@ async function startServer() {
       // Only attempt to send if credentials are provided
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         console.log('Attempting to send email to leonardkabo32@gmail.com...');
-        const info = await transporter.sendMail({
+        
+        // 1. Notify Admin
+        await transporter.sendMail({
           from: `"Site Web Eboun Léonard" <${process.env.EMAIL_USER}>`,
           to: 'leonardkabo32@gmail.com',
           subject: subject,
           text: text,
           replyTo: email,
         });
-        console.log('Email notification sent successfully:', info.messageId);
+        console.log('Admin notification sent successfully');
+
+        // 2. Send confirmation to User
+        await transporter.sendMail({
+          from: `"Eboun Léonard KABO" <${process.env.EMAIL_USER}>`,
+          to: email,
+          subject: `Confirmation de votre demande de ${type}`,
+          text: `Bonjour ${name},\n\nNous avons bien reçu votre demande de ${type} via notre site web.\n\nNous reviendrons vers vous dans les plus brefs délais pour donner suite à votre requête.\n\nCordialement,\nL'équipe Eboun Léonard KABO`,
+        });
+        console.log('User confirmation email sent successfully');
       } else {
         console.warn('Email credentials not configured (EMAIL_USER or EMAIL_PASS missing). Skipping email notification.');
       }

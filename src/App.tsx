@@ -32,6 +32,7 @@ import BlogSection from './components/BlogSection';
 import NewsList from './components/NewsList';
 import NewsDetail from './components/NewsDetail';
 import LegalPage from './components/LegalPage';
+import ContactForm from './components/ContactForm';
 
 function PageWrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -120,8 +121,14 @@ export default function App() {
                 path="/contact"
                 element={
                   <PageWrapper>
-                    <div className="pt-20">
-                      <AppointmentForm />
+                    <div className="pt-20 pb-24 px-4">
+                      <div className="text-center max-w-3xl mx-auto mb-16">
+                        <h1 className="text-5xl font-bold text-gray-900 mb-6 tracking-tight">Contactez-moi</h1>
+                        <p className="text-xl text-gray-600 leading-relaxed">
+                          Vous avez un projet en tête ou une question ? Je suis à votre écoute.
+                        </p>
+                      </div>
+                      <ContactForm />
                     </div>
                   </PageWrapper>
                 }
