@@ -75,6 +75,8 @@ export default function AdminDashboard() {
   const [saving, setSaving] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [showConfirm, setShowConfirm] = useState<{ collection: string, id: string } | null>(null);
+  const [showSuccess, setShowSuccess] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
@@ -159,7 +161,7 @@ export default function AdminDashboard() {
     setSaving(true);
     try {
       await setDoc(doc(db, 'settings', 'site'), siteSettings);
-      alert('Paramètres du site enregistrés !');
+      setShowSuccess('Paramètres du site enregistrés !');
     } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'settings/site'); }
     setSaving(false);
   };
@@ -168,15 +170,14 @@ export default function AdminDashboard() {
     setSaving(true);
     try {
       await setDoc(doc(db, 'sections', 'hero'), heroContent);
-      alert('Contenu Hero enregistré !');
+      setShowSuccess('Contenu Hero enregistré !');
     } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'sections/hero'); }
     setSaving(false);
   };
 
   const handleAddService = async () => {
-    const title = prompt('Titre du service ?');
-    if (!title) return;
     try {
+      const title = `Nouveau Service ${services.length + 1}`;
       await addDoc(collection(db, 'services'), {
         title,
         slug: title.toLowerCase().replace(/ /g, '-'),
@@ -187,13 +188,13 @@ export default function AdminDashboard() {
         thumbnail: 'https://picsum.photos/seed/service/800/600',
         createdAt: Date.now()
       });
+      setShowSuccess('Service ajouté ! Vous pouvez maintenant le modifier.');
     } catch (e) { handleFirestoreError(e, OperationType.CREATE, 'services'); }
   };
 
   const handleAddPortfolio = async () => {
-    const title = prompt('Titre du projet ?');
-    if (!title) return;
     try {
+      const title = `Nouveau Projet ${portfolio.length + 1}`;
       await addDoc(collection(db, 'portfolio'), {
         title,
         category: 'web',
@@ -202,13 +203,13 @@ export default function AdminDashboard() {
         technologies: ['React', 'Firebase'],
         createdAt: Date.now()
       });
+      setShowSuccess('Projet ajouté ! Vous pouvez maintenant le modifier.');
     } catch (e) { handleFirestoreError(e, OperationType.CREATE, 'portfolio'); }
   };
 
   const handleAddNews = async () => {
-    const title = prompt('Titre de l\'article ?');
-    if (!title) return;
     try {
+      const title = `Nouvel Article ${news.length + 1}`;
       await addDoc(collection(db, 'news'), {
         title,
         body: 'Contenu de l\'article...',
@@ -217,6 +218,7 @@ export default function AdminDashboard() {
         createdAt: Date.now(),
         image: 'https://picsum.photos/seed/news/800/600'
       });
+      setShowSuccess('Article ajouté ! Vous pouvez maintenant le modifier.');
     } catch (e) { handleFirestoreError(e, OperationType.CREATE, 'news'); }
   };
 
@@ -234,13 +236,12 @@ export default function AdminDashboard() {
       await updateDoc(doc(db, collectionName, id), data);
       setEditingItem(null);
       setEditType(null);
-      alert('Élément mis à jour !');
+      setShowSuccess('Élément mis à jour !');
     } catch (e) { handleFirestoreError(e, OperationType.UPDATE, `${editType}/${editingItem.id}`); }
     setSaving(false);
   };
 
   const initializeData = async () => {
-    if (!window.confirm('Voulez-vous initialiser la base de données avec les données par défaut ?')) return;
     setSaving(true);
     try {
       // Initialize Services
@@ -295,7 +296,7 @@ export default function AdminDashboard() {
       for (const n of defaultNews) {
         await addDoc(collection(db, 'news'), n);
       }
-      alert('Données initialisées avec succès !');
+      setShowSuccess('Données initialisées avec succès !');
     } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'initialization'); }
     setSaving(false);
   };
@@ -312,17 +313,24 @@ export default function AdminDashboard() {
   const updateStatus = async (collectionName: string, id: string, newStatus: string) => {
     try {
       await updateDoc(doc(db, collectionName, id), { status: newStatus });
+      setShowSuccess('Statut mis à jour !');
     } catch (error) {
       handleFirestoreError(error, OperationType.UPDATE, `${collectionName}/${id}`);
     }
   };
 
   const deleteItem = async (collectionName: string, id: string) => {
-    if (!window.confirm('Êtes-vous sûr de vouloir supprimer cet élément ?')) return;
+    setShowConfirm({ collection: collectionName, id });
+  };
+
+  const confirmDelete = async () => {
+    if (!showConfirm) return;
     try {
-      await deleteDoc(doc(db, collectionName, id));
+      await deleteDoc(doc(db, showConfirm.collection, showConfirm.id));
+      setShowConfirm(null);
+      setShowSuccess('Élément supprimé avec succès.');
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, `${collectionName}/${id}`);
+      handleFirestoreError(error, OperationType.DELETE, `${showConfirm.collection}/${showConfirm.id}`);
     }
   };
 
@@ -334,7 +342,7 @@ export default function AdminDashboard() {
         mapLng: Number(mapConfig.lng),
         updatedAt: Date.now()
       });
-      alert('Paramètres de la carte mis à jour !');
+      setShowSuccess('Paramètres de la carte mis à jour !');
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, 'settings/mapConfig');
     } finally {
@@ -429,12 +437,29 @@ export default function AdminDashboard() {
     item.message?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const currentItems = activeTab === 'appointments' ? filteredAppointments : (activeTab === 'quotes' ? filteredQuotes : filteredContacts);
+  const currentItems = activeTab === 'appointments' 
+    ? filteredAppointments 
+    : activeTab === 'quotes' 
+      ? filteredQuotes 
+      : activeTab === 'contacts'
+        ? filteredContacts
+        : [];
+
   const totalPages = Math.ceil(currentItems.length / ITEMS_PER_PAGE);
   const paginatedItems = currentItems.slice(
     (currentPage - 1) * ITEMS_PER_PAGE,
     currentPage * ITEMS_PER_PAGE
   );
+
+  const formatDate = (timestamp: any) => {
+    if (!timestamp) return 'N/A';
+    try {
+      const date = typeof timestamp === 'number' ? new Date(timestamp) : (timestamp.toDate ? timestamp.toDate() : new Date(timestamp));
+      return date.toLocaleDateString('fr-FR');
+    } catch (e) {
+      return 'Date invalide';
+    }
+  };
 
   if (loading) {
     return (
@@ -711,7 +736,7 @@ export default function AdminDashboard() {
                               {item.status}
                             </div>
                             <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                              {new Date(item.createdAt).toLocaleDateString()}
+                              {formatDate(item.createdAt)}
                             </span>
                           </div>
                           <h3 className="text-2xl font-bold text-gray-900">{item.name}</h3>
@@ -803,7 +828,7 @@ export default function AdminDashboard() {
                               {item.status}
                             </div>
                             <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                              {new Date(item.createdAt).toLocaleDateString()}
+                              {formatDate(item.createdAt)}
                             </span>
                           </div>
                           <h3 className="text-2xl font-bold text-gray-900">{item.name}</h3>
@@ -889,7 +914,7 @@ export default function AdminDashboard() {
                               {item.status === 'read' ? 'Lu' : 'Nouveau'}
                             </div>
                             <span className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                              {new Date(item.createdAt).toLocaleDateString()}
+                              {formatDate(item.createdAt)}
                             </span>
                           </div>
                           <h3 className="text-2xl font-bold text-gray-900">{item.name}</h3>
@@ -1186,7 +1211,7 @@ export default function AdminDashboard() {
                               <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest animate-pulse">Nouveau</span>
                             )}
                           </div>
-                          <p className="text-sm text-gray-500">{new Date(n.createdAt).toLocaleDateString()}</p>
+                          <p className="text-sm text-gray-500">{formatDate(n.createdAt)}</p>
                         </div>
                       </div>
                       <div className="flex space-x-2">
@@ -1263,6 +1288,57 @@ export default function AdminDashboard() {
                   </Button>
                 </div>
               </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Success Notification */}
+          <AnimatePresence>
+            {showSuccess && (
+              <motion.div
+                initial={{ opacity: 0, y: 50 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 50 }}
+                className="fixed bottom-8 right-8 z-[150] bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center space-x-4"
+              >
+                <Check size={24} />
+                <span className="font-bold">{showSuccess}</span>
+                <button onClick={() => setShowSuccess(null)} className="ml-4 hover:bg-white/20 p-1 rounded-lg transition-colors">
+                  <X size={20} />
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Confirmation Modal */}
+          <AnimatePresence>
+            {showConfirm && (
+              <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                  onClick={() => setShowConfirm(null)}
+                />
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.9 }}
+                  className="relative bg-white w-full max-w-md p-8 rounded-[2.5rem] shadow-2xl text-center"
+                >
+                  <div className="w-20 h-20 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Trash2 size={40} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-gray-900 mb-4">Confirmer la suppression</h3>
+                  <p className="text-gray-600 mb-8 leading-relaxed">
+                    Êtes-vous sûr de vouloir supprimer cet élément ? Cette action est irréversible.
+                  </p>
+                  <div className="flex space-x-4">
+                    <Button variant="outline" className="flex-1" onClick={() => setShowConfirm(null)}>Annuler</Button>
+                    <Button variant="danger" className="flex-1" onClick={confirmDelete}>Supprimer</Button>
+                  </div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>
           

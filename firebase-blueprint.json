@@ -94,6 +94,53 @@
         "image": { "type": "string" }
       },
       "required": ["title", "body", "createdAt"]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "An appointment request",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "date": { "type": "string" },
+        "time": { "type": "string" },
+        "service": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "confirmed", "cancelled"] },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["name", "email", "phone", "date", "time", "service", "status", "createdAt"]
+    },
+    "Quote": {
+      "title": "Quote",
+      "description": "A quote request",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "company": { "type": "string" },
+        "service": { "type": "string" },
+        "budget": { "type": "string" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "responded"] },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["name", "email", "service", "description", "status", "createdAt"]
+    },
+    "Contact": {
+      "title": "Contact",
+      "description": "A contact message",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "subject": { "type": "string" },
+        "message": { "type": "string" },
+        "status": { "type": "string", "enum": ["unread", "read"] },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["name", "email", "subject", "message", "status", "createdAt"]
     }
   },
   "firestore": {
@@ -101,6 +148,9 @@
     "/sections/hero": { "schema": "HeroSection", "description": "Hero section content" },
     "/services/{serviceId}": { "schema": "Service", "description": "List of services" },
     "/portfolio/{itemId}": { "schema": "PortfolioItem", "description": "List of portfolio items" },
-    "/news/{newsId}": { "schema": "NewsItem", "description": "List of news articles" }
+    "/news/{newsId}": { "schema": "NewsItem", "description": "List of news articles" },
+    "/appointments/{appointmentId}": { "schema": "Appointment", "description": "List of appointment requests" },
+    "/quotes/{quoteId}": { "schema": "Quote", "description": "List of quote requests" },
+    "/contacts/{contactId}": { "schema": "Contact", "description": "List of contact messages" }
   }
 }

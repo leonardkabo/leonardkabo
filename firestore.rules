@@ -72,7 +72,17 @@ service cloud.firestore {
     //   - budget: string (optional)
     //   - description: string (required)
     //   - status: string (required, enum: ['pending', 'responded'])
-    //   - createdAt: timestamp (required)
+    //   - createdAt: number (required)
+    //
+    // Collection: contacts
+    // Document ID: auto-generated
+    // Fields:
+    //   - name: string (required)
+    //   - email: string (required, email)
+    //   - subject: string (required)
+    //   - message: string (required)
+    //   - status: string (required, enum: ['unread', 'read'])
+    //   - createdAt: number (required)
     //
     // ===============================================================
 
@@ -149,6 +159,13 @@ service cloud.firestore {
       allow create: if request.resource.data.name is string &&
                       isValidEmail(request.resource.data.email) &&
                       request.resource.data.status == 'pending';
+      allow read, update, delete: if isAdmin();
+    }
+
+    match /contacts/{docId} {
+      allow create: if request.resource.data.name is string &&
+                      isValidEmail(request.resource.data.email) &&
+                      request.resource.data.status == 'unread';
       allow read, update, delete: if isAdmin();
     }
 
