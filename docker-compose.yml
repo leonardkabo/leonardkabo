@@ -1,12 +1,10 @@
-version: '3.8'
-
 services:
   leonardkabo-site:
     build: .
     container_name: leonardkabo-site
     restart: always
     networks:
-      - traefik-public
+      - traefik-network
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.leonardkabo.rule=Host(`leonardkabo.cloud`)"
@@ -15,5 +13,5 @@ services:
       - "traefik.http.services.leonardkabo.loadbalancer.server.port=3000"
 
 networks:
-  traefik-public:
+  traefik-network:
     external: true
