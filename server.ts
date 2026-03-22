@@ -62,7 +62,7 @@ async function startServer() {
 
     try {
       // Re-initialize transporter if it was created with empty env vars
-      if (!transporter.options.auth?.user && process.env.EMAIL_USER) {
+      if (!(transporter.options as any).auth?.user && process.env.EMAIL_USER) {
         transporter = createTransporter();
       }
 

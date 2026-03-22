@@ -5,7 +5,10 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { FileText, Mail, User, Building, Briefcase, DollarSign, Send, CheckCircle2, MessageSquare } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { FileText, Mail, User, Building, Briefcase, DollarSign, Send, CheckCircle2, MessageSquare, AlertCircle } from 'lucide-react';
 import { servicesData } from '../data';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
@@ -20,16 +23,24 @@ enum OperationType {
   WRITE = 'write',
 }
 
+const schema = yup.object({
+  name: yup.string().required('Le nom est requis').min(2, 'Le nom doit contenir au moins 2 caractères'),
+  email: yup.string().email('Email invalide').required('L\'email est requis'),
+  company: yup.string().default(''),
+  service: yup.string().required('Le service est requis'),
+  budget: yup.string().required('Le budget est requis'),
+  description: yup.string().required('La description est requise').min(10, 'La description doit contenir au moins 10 caractères'),
+}).required();
+
+type FormData = yup.InferType<typeof schema>;
+
 export default function QuoteForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    company: '',
-    service: '',
-    budget: '',
-    description: '',
+  const [submittedName, setSubmittedName] = useState('');
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
+    resolver: yupResolver(schema) as any,
   });
 
   const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
@@ -42,15 +53,15 @@ export default function QuoteForm() {
     throw new Error(JSON.stringify(errInfo));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: FormData) => {
     setLoading(true);
+    setSubmittedName(data.name);
     
     const path = 'quotes';
     try {
       // Save to Firestore
       await addDoc(collection(db, path), {
-        ...formData,
+        ...data,
         status: 'pending',
         createdAt: Date.now(),
       });
@@ -60,12 +71,13 @@ export default function QuoteForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
+          ...data,
           type: 'devis',
         }),
       }).catch(err => console.error('Backend notification failed:', err));
 
       setSubmitted(true);
+      reset();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     } finally {
@@ -85,7 +97,7 @@ export default function QuoteForm() {
         </div>
         <h2 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">Demande de Devis Reçue !</h2>
         <p className="text-lg text-gray-600 leading-relaxed mb-10">
-          Merci {formData.name}. Votre demande de devis a été envoyée avec succès. Je l'étudierai avec soin et vous répondrai sous 48 heures.
+          Merci {submittedName}. Votre demande de devis a été envoyée avec succès. Je l'étudierai avec soin et vous répondrai sous 48 heures.
         </p>
         <Button
           onClick={() => setSubmitted(false)}
@@ -124,7 +136,7 @@ export default function QuoteForm() {
           initial={{ opacity: 0, y: 40 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          onSubmit={handleSubmit}
+          onSubmit={handleSubmit(onSubmit)}
           className="max-w-4xl mx-auto bg-gray-50 p-12 rounded-[3rem] shadow-2xl shadow-blue-900/5 border border-gray-100 space-y-8"
         >
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -132,35 +144,34 @@ export default function QuoteForm() {
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Informations de Contact</label>
               <div className="space-y-4">
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <User className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.name ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <input
-                    required
+                    {...register('name')}
                     type="text"
                     placeholder="Votre nom complet"
-                    className="w-full bg-white border-2 border-transparent focus:border-blue-600/20 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className={`w-full bg-white border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all ${errors.name ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20'}`}
                   />
                 </div>
+                {errors.name && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.name.message}</p>}
+                
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.email ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <input
-                    required
+                    {...register('email')}
                     type="email"
                     placeholder="votre@email.com"
-                    className="w-full bg-white border-2 border-transparent focus:border-blue-600/20 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className={`w-full bg-white border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all ${errors.email ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20'}`}
                   />
                 </div>
+                {errors.email && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.email.message}</p>}
+
                 <div className="relative">
                   <Building className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                   <input
+                    {...register('company')}
                     type="text"
                     placeholder="Entreprise / Organisation (Optionnel)"
                     className="w-full bg-white border-2 border-transparent focus:border-blue-600/20 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all"
-                    value={formData.company}
-                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
                   />
                 </div>
               </div>
@@ -170,12 +181,10 @@ export default function QuoteForm() {
               <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Détails du Projet</label>
               <div className="space-y-4">
                 <div className="relative">
-                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Briefcase className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.service ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <select
-                    required
-                    className="w-full bg-white border-2 border-transparent focus:border-blue-600/20 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all appearance-none"
-                    value={formData.service}
-                    onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+                    {...register('service')}
+                    className={`w-full bg-white border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all appearance-none ${errors.service ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20'}`}
                   >
                     <option value="">Type de service</option>
                     {servicesData.map(s => (
@@ -183,12 +192,13 @@ export default function QuoteForm() {
                     ))}
                   </select>
                 </div>
+                {errors.service && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.service.message}</p>}
+
                 <div className="relative">
-                  <DollarSign className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <DollarSign className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.budget ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <select
-                    className="w-full bg-white border-2 border-transparent focus:border-blue-600/20 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all appearance-none"
-                    value={formData.budget}
-                    onChange={(e) => setFormData({ ...formData, budget: e.target.value })}
+                    {...register('budget')}
+                    className={`w-full bg-white border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all appearance-none ${errors.budget ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20'}`}
                   >
                     <option value="">Budget approximatif</option>
                     <option value="< 100k">Moins de 100 000 FCFA</option>
@@ -197,17 +207,18 @@ export default function QuoteForm() {
                     <option value="> 1M">Plus de 1 000 000 FCFA</option>
                   </select>
                 </div>
+                {errors.budget && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.budget.message}</p>}
+
                 <div className="relative">
-                  <MessageSquare className="absolute left-4 top-6 text-gray-400" size={18} />
+                  <MessageSquare className={`absolute left-4 top-6 ${errors.description ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <textarea
-                    required
+                    {...register('description')}
                     placeholder="Décrivez brièvement vos besoins..."
                     rows={4}
-                    className="w-full bg-white border-2 border-transparent focus:border-blue-600/20 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all resize-none"
-                    value={formData.description}
-                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className={`w-full bg-white border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all resize-none ${errors.description ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20'}`}
                   />
                 </div>
+                {errors.description && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.description.message}</p>}
               </div>
             </div>
           </div>

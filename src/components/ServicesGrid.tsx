@@ -95,12 +95,27 @@ export default function ServicesGrid() {
 
                   <div className="flex items-center justify-between mt-auto pt-6 border-t border-slate-100">
                     <div className="flex flex-col">
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Expertise</span>
-                      <span className={`text-xl font-black text-slate-900 group-hover:text-blue-600 transition-colors`}>
-                        {service.tagline}
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                        {service.isPromoActive ? 'Offre Spéciale' : 'À partir de'}
                       </span>
+                      <div className="flex items-baseline gap-2">
+                        <span className={`text-xl font-black ${service.isPromoActive ? 'text-emerald-600' : 'text-slate-900'} group-hover:text-blue-600 transition-colors`}>
+                          {service.isPromoActive ? service.promoPrice : service.pricing?.basePrice} {service.pricing?.currency || 'FCFA'}
+                        </span>
+                        {service.isPromoActive && service.pricing?.basePrice && (
+                          <span className="text-sm text-slate-400 line-through font-medium">
+                            {service.pricing.basePrice}
+                          </span>
+                        )}
+                      </div>
                     </div>
                     
+                    {service.isPromoActive && service.pricing?.basePrice && service.promoPrice && (
+                      <div className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg text-[10px] font-bold">
+                        -{Math.round(((service.pricing.basePrice - service.promoPrice) / service.pricing.basePrice) * 100)}%
+                      </div>
+                    )}
+
                     <div
                       className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-blue-600 group-hover:text-white transition-all shadow-lg shadow-transparent group-hover:shadow-blue-600/20"
                     >

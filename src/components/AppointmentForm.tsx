@@ -5,7 +5,10 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Calendar, Clock, User, Mail, Phone, MessageSquare, Send, CheckCircle2, Briefcase } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
+import { Calendar, Clock, User, Mail, Phone, MessageSquare, Send, CheckCircle2, Briefcase, AlertCircle } from 'lucide-react';
 import { servicesData } from '../data';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
@@ -20,17 +23,25 @@ enum OperationType {
   WRITE = 'write',
 }
 
+const schema = yup.object({
+  name: yup.string().required('Le nom est requis').min(2, 'Le nom doit contenir au moins 2 caractères'),
+  email: yup.string().email('Email invalide').required('L\'email est requis'),
+  phone: yup.string().required('Le téléphone est requis').matches(/^[+]*[(]{0,1}[0-9]{1,4}[)]{0,1}[-\s\./0-9]*$/, 'Numéro de téléphone invalide'),
+  service: yup.string().required('Le service est requis'),
+  date: yup.string().required('La date est requise'),
+  time: yup.string().required('L\'heure est requise'),
+  message: yup.string().default(''),
+}).required();
+
+type FormData = yup.InferType<typeof schema>;
+
 export default function AppointmentForm() {
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    service: '',
-    date: '',
-    time: '',
-    message: '',
+  const [submittedName, setSubmittedName] = useState('');
+
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<FormData>({
+    resolver: yupResolver(schema) as any,
   });
 
   const handleFirestoreError = (error: unknown, operationType: OperationType, path: string | null) => {
@@ -43,15 +54,15 @@ export default function AppointmentForm() {
     throw new Error(JSON.stringify(errInfo));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const onSubmit = async (data: FormData) => {
     setLoading(true);
+    setSubmittedName(data.name);
     
     const path = 'appointments';
     try {
       // Save to Firestore
       await addDoc(collection(db, path), {
-        ...formData,
+        ...data,
         status: 'pending',
         createdAt: Date.now(),
       });
@@ -61,12 +72,13 @@ export default function AppointmentForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...formData,
+          ...data,
           type: 'rendez-vous',
         }),
       }).catch(err => console.error('Backend notification failed:', err));
 
       setSubmitted(true);
+      reset();
     } catch (error) {
       handleFirestoreError(error, OperationType.WRITE, path);
     } finally {
@@ -86,7 +98,7 @@ export default function AppointmentForm() {
         </div>
         <h2 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">Demande Reçue !</h2>
         <p className="text-lg text-gray-600 leading-relaxed mb-10">
-          Merci {formData.name}. Votre demande de rendez-vous a été enregistrée avec succès. Vous recevrez une confirmation par email sous peu.
+          Merci {submittedName}. Votre demande de rendez-vous a été enregistrée avec succès. Vous recevrez une confirmation par email sous peu.
         </p>
         <Button
           onClick={() => setSubmitted(false)}
@@ -148,37 +160,35 @@ export default function AppointmentForm() {
             initial={{ opacity: 0, x: 20 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
-            onSubmit={handleSubmit}
+            onSubmit={handleSubmit(onSubmit)}
             className="bg-white p-10 rounded-[3rem] shadow-2xl shadow-blue-900/10 border border-gray-100 space-y-6"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
                 <div className="relative">
-                  <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <User className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.name ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <input
-                    required
+                    {...register('name')}
                     type="text"
                     placeholder="Votre nom"
-                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 pl-12 pr-4 outline-none transition-all"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className={`w-full bg-gray-50 border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all ${errors.name ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20 focus:bg-white'}`}
                   />
                 </div>
+                {errors.name && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.name.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Email</label>
                 <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Mail className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.email ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <input
-                    required
+                    {...register('email')}
                     type="email"
                     placeholder="votre@email.com"
-                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 pl-12 pr-4 outline-none transition-all"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className={`w-full bg-gray-50 border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all ${errors.email ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20 focus:bg-white'}`}
                   />
                 </div>
+                {errors.email && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.email.message}</p>}
               </div>
             </div>
 
@@ -186,26 +196,23 @@ export default function AppointmentForm() {
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Téléphone</label>
                 <div className="relative">
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Phone className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.phone ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <input
-                    required
+                    {...register('phone')}
                     type="tel"
                     placeholder="+229 01 65 45 87 78"
-                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 pl-12 pr-4 outline-none transition-all"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className={`w-full bg-gray-50 border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all ${errors.phone ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20 focus:bg-white'}`}
                   />
                 </div>
+                {errors.phone && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.phone.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Service</label>
                 <div className="relative">
-                  <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Briefcase className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.service ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <select
-                    required
-                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 pl-12 pr-4 outline-none transition-all appearance-none"
-                    value={formData.service}
-                    onChange={(e) => setFormData({ ...formData, service: e.target.value })}
+                    {...register('service')}
+                    className={`w-full bg-gray-50 border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all appearance-none ${errors.service ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20 focus:bg-white'}`}
                   >
                     <option value="">Choisir un service</option>
                     {servicesData.map(s => (
@@ -213,6 +220,7 @@ export default function AppointmentForm() {
                     ))}
                   </select>
                 </div>
+                {errors.service && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.service.message}</p>}
               </div>
             </div>
 
@@ -220,28 +228,26 @@ export default function AppointmentForm() {
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Date</label>
                 <div className="relative">
-                  <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Calendar className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.date ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <input
-                    required
+                    {...register('date')}
                     type="date"
-                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 pl-12 pr-4 outline-none transition-all"
-                    value={formData.date}
-                    onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                    className={`w-full bg-gray-50 border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all ${errors.date ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20 focus:bg-white'}`}
                   />
                 </div>
+                {errors.date && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.date.message}</p>}
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Heure</label>
                 <div className="relative">
-                  <Clock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                  <Clock className={`absolute left-4 top-1/2 -translate-y-1/2 ${errors.time ? 'text-red-400' : 'text-gray-400'}`} size={18} />
                   <input
-                    required
+                    {...register('time')}
                     type="time"
-                    className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 pl-12 pr-4 outline-none transition-all"
-                    value={formData.time}
-                    onChange={(e) => setFormData({ ...formData, time: e.target.value })}
+                    className={`w-full bg-gray-50 border-2 rounded-2xl py-4 pl-12 pr-4 outline-none transition-all ${errors.time ? 'border-red-100 focus:border-red-200 bg-red-50/30' : 'border-transparent focus:border-blue-600/20 focus:bg-white'}`}
                   />
                 </div>
+                {errors.time && <p className="text-xs text-red-500 flex items-center mt-1 ml-1"><AlertCircle size={12} className="mr-1" /> {errors.time.message}</p>}
               </div>
             </div>
 
@@ -250,11 +256,10 @@ export default function AppointmentForm() {
               <div className="relative">
                 <MessageSquare className="absolute left-4 top-6 text-gray-400" size={18} />
                 <textarea
+                  {...register('message')}
                   placeholder="Dites-moi en plus sur votre projet..."
                   rows={4}
                   className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 pl-12 pr-4 outline-none transition-all resize-none"
-                  value={formData.message}
-                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 />
               </div>
             </div>
