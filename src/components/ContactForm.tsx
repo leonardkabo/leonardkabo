@@ -67,7 +67,7 @@ export default function ContactForm() {
       // Save to Firestore
       await addDoc(collection(db, path), {
         ...data,
-        status: 'new',
+        status: 'unread',
         createdAt: Date.now(),
       });
       
