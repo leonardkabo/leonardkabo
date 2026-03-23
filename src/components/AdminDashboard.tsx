@@ -1043,6 +1043,48 @@ export default function AdminDashboard() {
                         </label>
                       </div>
                     </div>
+                    
+                    <div className="space-y-4 md:col-span-2">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mt-4 mb-2">Réseaux Sociaux</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">LinkedIn</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={siteSettings.socialLinks?.linkedin || ''}
+                            onChange={(e) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, linkedin: e.target.value}})}
+                            placeholder="https://linkedin.com/in/..."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Twitter (X)</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={siteSettings.socialLinks?.twitter || ''}
+                            onChange={(e) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, twitter: e.target.value}})}
+                            placeholder="https://x.com/..."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Facebook</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={siteSettings.socialLinks?.facebook || ''}
+                            onChange={(e) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, facebook: e.target.value}})}
+                            placeholder="https://facebook.com/..."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">WhatsApp</label>
+                          <input
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                            value={siteSettings.socialLinks?.whatsapp || ''}
+                            onChange={(e) => setSiteSettings({...siteSettings, socialLinks: {...siteSettings.socialLinks, whatsapp: e.target.value}})}
+                            placeholder="https://wa.me/..."
+                          />
+                        </div>
+                      </div>
+                    </div>
                     <div className="space-y-2 md:col-span-2">
                       <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mt-4 mb-2">Messages de Succès (Formulaires)</h3>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

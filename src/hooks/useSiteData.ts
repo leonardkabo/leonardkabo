@@ -142,7 +142,14 @@ export function useSiteData() {
   useEffect(() => {
     const unsubSettings = onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
       if (docSnap.exists()) {
-        setSettings(docSnap.data() as SiteSettings);
+        const data = docSnap.data() as SiteSettings;
+        setSettings({
+          ...data,
+          socialLinks: {
+            ...SOCIAL_LINKS,
+            ...(data.socialLinks || {})
+          }
+        });
       }
       setLoaded(prev => ({ ...prev, settings: true }));
     }, (error) => {

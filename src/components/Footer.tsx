@@ -43,7 +43,9 @@ export default function Footer() {
               <motion.a 
                 whileHover={{ scale: 1.1, y: -2 }}
                 whileTap={{ scale: 0.9 }}
-                href={settings.socialLinks.linkedin} 
+                href={settings.socialLinks?.linkedin} 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-blue-600 hover:text-white transition-all"
               >
                 <Linkedin size={20} />
@@ -51,7 +53,9 @@ export default function Footer() {
               <motion.a 
                 whileHover={{ scale: 1.1, y: -2 }}
                 whileTap={{ scale: 0.9 }}
-                href={settings.socialLinks.twitter} 
+                href={settings.socialLinks?.twitter} 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-blue-400 hover:text-white transition-all"
               >
                 <Twitter size={20} />
@@ -59,7 +63,9 @@ export default function Footer() {
               <motion.a 
                 whileHover={{ scale: 1.1, y: -2 }}
                 whileTap={{ scale: 0.9 }}
-                href={settings.socialLinks.facebook} 
+                href={settings.socialLinks?.facebook} 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-blue-700 hover:text-white transition-all"
               >
                 <Facebook size={20} />
@@ -67,7 +73,9 @@ export default function Footer() {
               <motion.a 
                 whileHover={{ scale: 1.1, y: -2 }}
                 whileTap={{ scale: 0.9 }}
-                href={settings.socialLinks.whatsapp} 
+                href={settings.socialLinks?.whatsapp} 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="w-10 h-10 rounded-xl bg-gray-800 flex items-center justify-center text-gray-400 hover:bg-emerald-600 hover:text-white transition-all"
               >
                 <MessageCircle size={20} />
@@ -113,7 +121,7 @@ export default function Footer() {
                 </div>
                 <div>
                   <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">WhatsApp</div>
-                  <a href={settings.socialLinks.whatsapp} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-blue-600 transition-colors">
+                  <a href={settings.socialLinks?.whatsapp} target="_blank" rel="noopener noreferrer" className="text-gray-300 hover:text-blue-600 transition-colors">
                     +229 65 45 87 78
                   </a>
                 </div>
