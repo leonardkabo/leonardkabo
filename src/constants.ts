@@ -22,3 +22,4 @@ export const SOCIAL_LINKS = {
     facebook: 'https://facebook.com/leonardkabo1',
     whatsapp: 'https://wa.me/22965458778',
 };
+
