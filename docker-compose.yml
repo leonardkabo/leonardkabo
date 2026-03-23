@@ -3,6 +3,8 @@ services:
     build: .
     container_name: leonardkabo-site
     restart: always
+    # CETTE LIGNE EST LA CLÉ : Elle injecte le .env du VPS dans le conteneur
+    env_file: .env 
     networks:
       - traefik-network
     labels:
