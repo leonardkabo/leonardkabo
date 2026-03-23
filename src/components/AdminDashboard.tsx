@@ -4,12 +4,13 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, Eye } from 'lucide-react';
+import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, Eye, Upload, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { auth, db } from '../firebase';
+import { auth, db, storage } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, setDoc, getDoc, addDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, Cell, PieChart, Pie } from 'recharts';
 import Button from './ui/Button';
 import { servicesData as staticServices, portfolioItems as staticPortfolio } from '../data';
@@ -73,6 +74,7 @@ export default function AdminDashboard() {
 
   const [mapConfig, setMapConfig] = useState({ lat: 9.3372, lng: 2.6288 });
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState<string | null>(null); // Track which field is uploading
   const [savingSettings, setSavingSettings] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [showConfirm, setShowConfirm] = useState<{ collection: string, id: string } | null>(null);
@@ -86,6 +88,23 @@ export default function AdminDashboard() {
       path
     };
     console.error('Firestore Error: ', JSON.stringify(errInfo));
+  };
+
+  const handleImageUpload = async (file: File, path: string, fieldId: string, callback: (url: string) => void) => {
+    if (!file) return;
+    setUploading(fieldId);
+    try {
+      const storageRef = ref(storage, `${path}/${Date.now()}_${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      callback(url);
+      setShowSuccess('Image téléchargée avec succès !');
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Erreur lors du téléchargement de l\'image.');
+    } finally {
+      setUploading(null);
+    }
   };
 
   useEffect(() => {
@@ -1002,12 +1021,27 @@ export default function AdminDashboard() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image Logo (URL)</label>
-                      <input
-                        className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
-                        value={siteSettings.logoImage}
-                        onChange={(e) => setSiteSettings({...siteSettings, logoImage: e.target.value})}
-                      />
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image Logo</label>
+                      <div className="flex gap-2">
+                        <input
+                          className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                          value={siteSettings.logoImage}
+                          onChange={(e) => setSiteSettings({...siteSettings, logoImage: e.target.value})}
+                          placeholder="URL de l'image"
+                        />
+                        <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
+                          {uploading === 'logoImage' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file, 'settings', 'logoImage', (url) => setSiteSettings({...siteSettings, logoImage: url}));
+                            }}
+                          />
+                        </label>
+                      </div>
                     </div>
                     <div className="space-y-2 md:col-span-2">
                       <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mt-4 mb-2">Messages de Succès (Formulaires)</h3>
@@ -1089,6 +1123,29 @@ export default function AdminDashboard() {
                         value={heroContent.description}
                         onChange={(e) => setHeroContent({...heroContent, description: e.target.value})}
                       />
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image de Profil</label>
+                      <div className="flex gap-2">
+                        <input
+                          className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                          value={heroContent.profileImage}
+                          onChange={(e) => setHeroContent({...heroContent, profileImage: e.target.value})}
+                          placeholder="URL de l'image"
+                        />
+                        <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
+                          {uploading === 'profileImage' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleImageUpload(file, 'hero', 'profileImage', (url) => setHeroContent({...heroContent, profileImage: url}));
+                            }}
+                          />
+                        </label>
+                      </div>
                     </div>
                   </div>
                   <Button onClick={handleSaveHero} isLoading={saving} icon={Save}>Enregistrer le Hero</Button>
@@ -1430,12 +1487,27 @@ export default function AdminDashboard() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image (URL)</label>
-                          <input
-                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
-                            value={editingItem.thumbnail}
-                            onChange={(e) => setEditingItem({...editingItem, thumbnail: e.target.value})}
-                          />
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image</label>
+                          <div className="flex gap-2">
+                            <input
+                              className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                              value={editingItem.thumbnail}
+                              onChange={(e) => setEditingItem({...editingItem, thumbnail: e.target.value})}
+                              placeholder="URL de l'image"
+                            />
+                            <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
+                              {uploading === 'thumbnail' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleImageUpload(file, 'services', 'thumbnail', (url) => setEditingItem({...editingItem, thumbnail: url}));
+                                }}
+                              />
+                            </label>
+                          </div>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
@@ -1512,12 +1584,27 @@ export default function AdminDashboard() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image (URL)</label>
-                          <input
-                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
-                            value={editingItem.image}
-                            onChange={(e) => setEditingItem({...editingItem, image: e.target.value})}
-                          />
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image</label>
+                          <div className="flex gap-2">
+                            <input
+                              className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                              value={editingItem.image}
+                              onChange={(e) => setEditingItem({...editingItem, image: e.target.value})}
+                              placeholder="URL de l'image"
+                            />
+                            <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
+                              {uploading === 'portfolioImage' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleImageUpload(file, 'portfolio', 'portfolioImage', (url) => setEditingItem({...editingItem, image: url}));
+                                }}
+                              />
+                            </label>
+                          </div>
                         </div>
                       </>
                     )}
@@ -1542,12 +1629,27 @@ export default function AdminDashboard() {
                           />
                         </div>
                         <div className="space-y-2">
-                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image (URL)</label>
-                          <input
-                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
-                            value={editingItem.image}
-                            onChange={(e) => setEditingItem({...editingItem, image: e.target.value})}
-                          />
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image</label>
+                          <div className="flex gap-2">
+                            <input
+                              className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                              value={editingItem.image}
+                              onChange={(e) => setEditingItem({...editingItem, image: e.target.value})}
+                              placeholder="URL de l'image"
+                            />
+                            <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
+                              {uploading === 'newsImage' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleImageUpload(file, 'news', 'newsImage', (url) => setEditingItem({...editingItem, image: url}));
+                                }}
+                              />
+                            </label>
+                          </div>
                         </div>
                       </>
                     )}
