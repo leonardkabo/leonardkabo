@@ -18,7 +18,7 @@ export const NAV_LINKS = [
 
 export const SOCIAL_LINKS = {
     linkedin: 'https://linkedin.com/in/leonardkabo',
-    twitter: 'https://twitter.com/leonardkabo',
-    facebook: 'https://facebook.com/leonardkabo',
+    twitter: 'https://x.com/leonardkabo1',
+    facebook: 'https://facebook.com/leonardkabo1',
     whatsapp: 'https://wa.me/22965458778',
 };
