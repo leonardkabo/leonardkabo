@@ -12,6 +12,7 @@ import { Calendar, Clock, User, Mail, Phone, MessageSquare, Send, CheckCircle2, 
 import { servicesData } from '../data';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { useSiteData } from '../hooks/useSiteData';
 import Button from './ui/Button';
 
 enum OperationType {
@@ -36,6 +37,7 @@ const schema = yup.object({
 type FormData = yup.InferType<typeof schema>;
 
 export default function AppointmentForm() {
+  const { settings } = useSiteData();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,7 +103,11 @@ export default function AppointmentForm() {
         </div>
         <h2 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">Demande Reçue !</h2>
         <p className="text-lg text-gray-600 leading-relaxed mb-10">
-          Merci {submittedName}. Votre demande de rendez-vous a été enregistrée avec succès. Vous recevrez une confirmation par email sous peu.
+          {settings.successMessages?.appointment ? (
+            settings.successMessages.appointment.replace('{name}', submittedName)
+          ) : (
+            <>Merci {submittedName}. Votre demande de rendez-vous a été enregistrée avec succès. Vous recevrez une confirmation par email sous peu.</>
+          )}
         </p>
         <Button
           onClick={() => setSubmitted(false)}

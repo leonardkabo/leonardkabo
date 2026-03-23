@@ -1009,6 +1009,41 @@ export default function AdminDashboard() {
                         onChange={(e) => setSiteSettings({...siteSettings, logoImage: e.target.value})}
                       />
                     </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mt-4 mb-2">Messages de Succès (Formulaires)</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Contact</label>
+                          <textarea
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none resize-none"
+                            rows={3}
+                            value={siteSettings.successMessages?.contact || ''}
+                            onChange={(e) => setSiteSettings({...siteSettings, successMessages: {...(siteSettings.successMessages || {}), contact: e.target.value}})}
+                            placeholder="Message après envoi contact..."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Rendez-vous</label>
+                          <textarea
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none resize-none"
+                            rows={3}
+                            value={siteSettings.successMessages?.appointment || ''}
+                            onChange={(e) => setSiteSettings({...siteSettings, successMessages: {...(siteSettings.successMessages || {}), appointment: e.target.value}})}
+                            placeholder="Message après demande RDV..."
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Devis</label>
+                          <textarea
+                            className="w-full bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none resize-none"
+                            rows={3}
+                            value={siteSettings.successMessages?.quote || ''}
+                            onChange={(e) => setSiteSettings({...siteSettings, successMessages: {...(siteSettings.successMessages || {}), quote: e.target.value}})}
+                            placeholder="Message après demande devis..."
+                          />
+                        </div>
+                      </div>
+                    </div>
                   </div>
                   <Button onClick={handleSaveSiteSettings} isLoading={saving} icon={Save}>Enregistrer les Paramètres</Button>
                 </div>

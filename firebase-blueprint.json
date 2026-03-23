@@ -17,7 +17,15 @@
             "whatsapp": { "type": "string" }
           }
         },
-        "logoText": { "type": "string", "description": "Text to display next to the logo" }
+        "logoText": { "type": "string", "description": "Text to display next to the logo" },
+        "successMessages": {
+          "type": "object",
+          "properties": {
+            "contact": { "type": "string", "description": "Success message for contact form" },
+            "appointment": { "type": "string", "description": "Success message for appointment form" },
+            "quote": { "type": "string", "description": "Success message for quote form" }
+          }
+        }
       },
       "required": ["siteName", "siteTitle", "contactEmail"]
     },

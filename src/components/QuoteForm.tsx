@@ -12,6 +12,7 @@ import { FileText, Mail, User, Building, Briefcase, DollarSign, Send, CheckCircl
 import { servicesData } from '../data';
 import { db } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { useSiteData } from '../hooks/useSiteData';
 import Button from './ui/Button';
 
 enum OperationType {
@@ -35,6 +36,7 @@ const schema = yup.object({
 type FormData = yup.InferType<typeof schema>;
 
 export default function QuoteForm() {
+  const { settings } = useSiteData();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +102,11 @@ export default function QuoteForm() {
         </div>
         <h2 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">Demande de Devis Reçue !</h2>
         <p className="text-lg text-gray-600 leading-relaxed mb-10">
-          Merci {submittedName}. Votre demande de devis a été envoyée avec succès. Je l'étudierai avec soin et vous répondrai sous 48 heures.
+          {settings.successMessages?.quote ? (
+            settings.successMessages.quote.replace('{name}', submittedName)
+          ) : (
+            <>Merci {submittedName}. Votre demande de devis a été envoyée avec succès. Je l'étudierai avec soin et vous répondrai sous 48 heures.</>
+          )}
         </p>
         <Button
           onClick={() => setSubmitted(false)}

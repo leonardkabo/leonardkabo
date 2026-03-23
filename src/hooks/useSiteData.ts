@@ -46,6 +46,11 @@ export interface SiteSettings {
   };
   logoText: string;
   logoImage?: string;
+  successMessages?: {
+    contact?: string;
+    appointment?: string;
+    quote?: string;
+  };
 }
 
 export interface HeroContent {

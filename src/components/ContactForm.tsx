@@ -11,6 +11,7 @@ import { motion } from 'motion/react';
 import { Send, CheckCircle2, AlertCircle, User, Mail, MessageSquare } from 'lucide-react';
 import { db, auth } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
+import { useSiteData } from '../hooks/useSiteData';
 import Button from './ui/Button';
 
 enum OperationType {
@@ -32,6 +33,7 @@ const schema = yup.object({
 type FormData = yup.InferType<typeof schema>;
 
 export default function ContactForm() {
+  const { settings } = useSiteData();
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,8 +103,14 @@ export default function ContactForm() {
         </div>
         <h2 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">Message Envoyé !</h2>
         <p className="text-lg text-gray-600 leading-relaxed mb-10">
-          Merci <strong>{submittedName}</strong>, votre message a bien été transmis. 
-          Un email de confirmation vous a été envoyé et nous vous répondrons très prochainement.
+          {settings.successMessages?.contact ? (
+            settings.successMessages.contact.replace('{name}', submittedName)
+          ) : (
+            <>
+              Merci <strong>{submittedName}</strong>, votre message a bien été transmis. 
+              Un email de confirmation vous a été envoyé et nous vous répondrons très prochainement.
+            </>
+          )}
         </p>
         <Button onClick={() => setSubmitted(false)} variant="outline" size="lg">
           Envoyer un autre message
