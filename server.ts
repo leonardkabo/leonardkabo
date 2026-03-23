@@ -60,6 +60,15 @@ async function startServer() {
     if (message) text += `Message: ${message}\n`;
     text += `\nDate de réception: ${new Date().toLocaleString('fr-FR')}`;
 
+    // Specific messages for user confirmation
+    const confirmationMessages: Record<string, string> = {
+      'contact': "Nous avons bien reçu votre message. Notre équipe vous répondra dans les plus brefs délais.",
+      'rendez-vous': "Votre demande de rendez-vous a bien été enregistrée. Nous reviendrons vers vous très prochainement pour confirmer le créneau horaire.",
+      'devis': "Votre demande de devis a été transmise avec succès. Nous étudions votre projet avec attention et vous enverrons une proposition personnalisée sous 48 heures."
+    };
+
+    const userMessage = confirmationMessages[type] || "Nous avons bien reçu votre demande et nous reviendrons vers vous rapidement.";
+
     try {
       // Re-initialize transporter if it was created with empty env vars
       if (!(transporter.options as any).auth?.user && process.env.EMAIL_USER) {
@@ -68,7 +77,7 @@ async function startServer() {
 
       // Only attempt to send if credentials are provided
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-        console.log('Attempting to send email to leonardkabo32@gmail.com...');
+        console.log(`Attempting to send email for ${type} to admin and user...`);
         
         // 1. Notify Admin
         await transporter.sendMail({
@@ -80,12 +89,30 @@ async function startServer() {
         });
         console.log('Admin notification sent successfully');
 
-        // 2. Send confirmation to User
+        // 2. Send confirmation to User (HTML format)
         await transporter.sendMail({
           from: `"Eboun Léonard KABO" <${process.env.EMAIL_USER}>`,
           to: email,
-          subject: `Confirmation de votre demande de ${type}`,
-          text: `Bonjour ${name},\n\nNous avons bien reçu votre demande de ${type} via notre site web.\n\nNous reviendrons vers vous dans les plus brefs délais pour donner suite à votre requête.\n\nCordialement,\nL'équipe Eboun Léonard KABO`,
+          subject: `Confirmation de votre demande - Eboun Léonard KABO`,
+          html: `
+            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+              <h2 style="color: #2563eb;">Bonjour ${name},</h2>
+              <p style="font-size: 16px; line-height: 1.6; color: #374151;">
+                ${userMessage}
+              </p>
+              <div style="margin: 30px 0; padding: 20px; background-color: #f9fafb; border-radius: 8px;">
+                <h3 style="margin-top: 0; font-size: 14px; color: #6b7280; text-transform: uppercase; letter-spacing: 1px;">Récapitulatif de votre demande (${type})</h3>
+                <p style="margin-bottom: 5px;"><strong>Service:</strong> ${service || 'Contact général'}</p>
+                <p style="margin-bottom: 0;"><strong>Date:</strong> ${new Date().toLocaleDateString('fr-FR')}</p>
+              </div>
+              <p style="font-size: 14px; color: #6b7280;">
+                Ceci est un message automatique, merci de ne pas y répondre directement.
+              </p>
+              <hr style="border: 0; border-top: 1px solid #eee; margin: 30px 0;" />
+              <p style="font-size: 14px; font-weight: bold; color: #111827; margin-bottom: 5px;">Eboun Léonard KABO</p>
+              <p style="font-size: 12px; color: #9ca3af; margin-top: 0;">Producteur Multimédia | Journaliste | Développeur Web</p>
+            </div>
+          `,
         });
         console.log('User confirmation email sent successfully');
       } else {
