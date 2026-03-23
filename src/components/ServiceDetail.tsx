@@ -8,13 +8,8 @@ import { useSiteData } from '../hooks/useSiteData';
 import { CONFIG } from '../data';
 import { motion } from 'motion/react';
 import { Check, ArrowLeft, Calendar, FileText, Star, Clock, ShieldCheck, Zap, Tag } from 'lucide-react';
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
+import { cn, formatPrice } from '../lib/utils';
 import Button from './ui/Button';
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs));
-}
 
 export default function ServiceDetail() {
   const { slug } = useParams();
@@ -158,7 +153,7 @@ export default function ServiceDetail() {
                       </div>
                       <div className="text-right">
                         <div className="text-2xl font-black text-emerald-600">
-                          {service.promoPrice.toLocaleString()} {CONFIG.currency}
+                          {formatPrice(service.promoPrice, CONFIG.currency)}
                         </div>
                         <div className="text-xs text-emerald-400 line-through">
                           À partir de {service.pricing?.packages[0]?.price.toLocaleString()} {CONFIG.currency}
@@ -190,7 +185,7 @@ export default function ServiceDetail() {
                       </div>
                       <div className="text-right">
                         <div className="text-lg font-black text-blue-600">
-                          {pkg.price.toLocaleString()} {CONFIG.currency}
+                          {formatPrice(pkg.price, CONFIG.currency)}
                         </div>
                         {pkg.badge && (
                           <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">

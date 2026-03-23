@@ -15,6 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import Button from './ui/Button';
 import { servicesData as staticServices, portfolioItems as staticPortfolio } from '../data';
 import { SITE_NAME, SITE_TITLE, CONTACT_EMAIL, SOCIAL_LINKS } from '../constants';
+import { formatPrice, convertToEur } from '../lib/utils';
 
 enum OperationType {
   CREATE = 'create',
@@ -566,7 +567,12 @@ export default function AdminDashboard() {
               </div>
               <TrendingUp size={20} className="text-emerald-500" />
             </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{stats.estimatedRevenue.toLocaleString()} FCFA</div>
+            <div className="text-3xl font-bold text-gray-900 mb-1">
+              {stats.estimatedRevenue.toLocaleString()} FCFA
+              <span className="text-sm font-normal text-gray-400 ml-2">
+                (≈{convertToEur(stats.estimatedRevenue)}€)
+              </span>
+            </div>
             <div className="text-sm font-bold text-gray-400 uppercase tracking-widest">CA Estimé (Mois)</div>
           </motion.div>
         </div>
@@ -1221,6 +1227,9 @@ export default function AdminDashboard() {
                               )}
                             </div>
                             <p className="text-sm text-gray-500">{s.categoryId}</p>
+                            <div className="text-sm font-bold text-blue-600 mt-1">
+                              {formatPrice(s.isPromoActive ? s.promoPrice : s.pricing?.basePrice, s.pricing?.currency)}
+                            </div>
                           </div>
                         </div>
                       <div className="flex space-x-2">

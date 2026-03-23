@@ -8,6 +8,7 @@ import { useSiteData } from '../hooks/useSiteData';
 import { ArrowRight, Camera, Code, Bot, Palette, Mic } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Button from './ui/Button';
+import { formatPrice } from '../lib/utils';
 
 const iconMap: Record<string, any> = {
   'multimedia': Camera,
@@ -114,11 +115,11 @@ export default function ServicesGrid() {
                         </span>
                         <div className="flex items-baseline gap-2">
                           <span className={`text-xl font-black ${service.isPromoActive ? 'text-emerald-600' : 'text-slate-900'} group-hover:text-blue-600 transition-colors`}>
-                            {service.isPromoActive ? service.promoPrice : service.pricing?.basePrice} {service.pricing?.currency || 'FCFA'}
+                            {formatPrice(service.isPromoActive ? service.promoPrice : service.pricing?.basePrice, service.pricing?.currency)}
                           </span>
                           {service.isPromoActive && service.pricing?.basePrice && (
                             <span className="text-sm text-slate-400 line-through font-medium">
-                              {service.pricing.basePrice}
+                              {service.pricing.basePrice.toLocaleString()}
                             </span>
                           )}
                         </div>
