@@ -1660,6 +1660,91 @@ export default function AdminDashboard() {
                             </div>
                           </div>
                         )}
+
+                        <div className="space-y-4 pt-4 border-t border-gray-100">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Galerie d'images</label>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                            {(editingItem.gallery || []).map((img: string, index: number) => (
+                              <div key={index} className="relative group aspect-video">
+                                <img 
+                                  src={img} 
+                                  className="w-full h-full rounded-2xl object-cover border border-gray-100" 
+                                  referrerPolicy="no-referrer"
+                                  alt={`Gallery ${index}`}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const newGallery = [...(editingItem.gallery || [])];
+                                    newGallery.splice(index, 1);
+                                    setEditingItem({...editingItem, gallery: newGallery});
+                                  }}
+                                  className="absolute top-2 right-2 p-1.5 bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </div>
+                            ))}
+                            <label className="aspect-video bg-gray-50 border-2 border-dashed border-gray-200 rounded-2xl flex flex-col items-center justify-center cursor-pointer hover:border-blue-600/20 hover:bg-blue-50/30 transition-all group">
+                              {uploading === 'gallery-new' ? (
+                                <Loader2 size={24} className="text-blue-600 animate-spin" />
+                              ) : (
+                                <>
+                                  <Plus size={24} className="text-gray-400 group-hover:text-blue-600 transition-colors" />
+                                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-2 group-hover:text-blue-600 transition-colors">Ajouter</span>
+                                </>
+                              )}
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                accept="image/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    handleImageUpload(file, 'services/gallery', 'gallery-new', (url) => {
+                                      const newGallery = [...(editingItem.gallery || []), url];
+                                      setEditingItem({...editingItem, gallery: newGallery});
+                                    });
+                                  }
+                                }}
+                              />
+                            </label>
+                          </div>
+                          <div className="flex gap-2">
+                            <input
+                              className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                              placeholder="Ou collez l'URL d'une image ici..."
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  const input = e.target as HTMLInputElement;
+                                  const url = input.value;
+                                  if (url) {
+                                    const newGallery = [...(editingItem.gallery || []), getDirectImageUrl(url)];
+                                    setEditingItem({...editingItem, gallery: newGallery});
+                                    input.value = '';
+                                  }
+                                }
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                                const url = input.value;
+                                if (url) {
+                                  const newGallery = [...(editingItem.gallery || []), getDirectImageUrl(url)];
+                                  setEditingItem({...editingItem, gallery: newGallery});
+                                  input.value = '';
+                                }
+                              }}
+                            >
+                              Ajouter
+                            </Button>
+                          </div>
+                        </div>
                       </>
                     )}
                     
