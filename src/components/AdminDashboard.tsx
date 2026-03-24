@@ -15,7 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import Button from './ui/Button';
 import { servicesData as staticServices, portfolioItems as staticPortfolio } from '../data';
 import { SITE_NAME, SITE_TITLE, CONTACT_EMAIL, SOCIAL_LINKS } from '../constants';
-import { formatPrice, convertToEur } from '../lib/utils';
+import { formatPrice, convertToEur, getDirectImageUrl } from '../lib/utils';
 
 enum OperationType {
   CREATE = 'create',
@@ -100,9 +100,17 @@ export default function AdminDashboard() {
       const url = await getDownloadURL(storageRef);
       callback(url);
       setShowSuccess('Image téléchargée avec succès !');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Upload error:', error);
-      alert('Erreur lors du téléchargement de l\'image.');
+      let errorMsg = 'Erreur lors du téléchargement de l\'image.';
+      if (error.code === 'storage/unauthorized') {
+        errorMsg = 'Permission refusée. Veuillez vérifier vos règles de sécurité Firebase Storage.';
+      } else if (error.code === 'storage/canceled') {
+        errorMsg = 'Téléchargement annulé.';
+      } else if (error.code === 'storage/unknown') {
+        errorMsg = 'Erreur inconnue. Vérifiez que Firebase Storage est activé dans votre console.';
+      }
+      alert(errorMsg);
     } finally {
       setUploading(null);
     }
@@ -993,6 +1001,24 @@ export default function AdminDashboard() {
                     <Globe className="text-blue-600" size={32} />
                     <h2 className="text-2xl font-bold">Paramètres du Site</h2>
                   </div>
+
+                  {/* Image Upload Info Box */}
+                  <div className="mb-8 p-6 bg-blue-50 rounded-3xl border border-blue-100">
+                    <h3 className="text-sm font-bold text-blue-900 uppercase tracking-widest mb-2 flex items-center gap-2">
+                      <ImageIcon size={16} /> Aide pour les images
+                    </h3>
+                    <p className="text-sm text-blue-700 leading-relaxed">
+                      Vous pouvez importer des images de deux manières :
+                    </p>
+                    <ul className="mt-2 space-y-1 text-sm text-blue-600 list-disc list-inside">
+                      <li><strong>Importation directe :</strong> Cliquez sur l'icône bleue <Upload size={14} className="inline" /> pour choisir un fichier sur votre appareil.</li>
+                      <li><strong>Lien externe :</strong> Collez un lien (Google Drive, Dropbox, ou lien direct). Les liens Drive sont automatiquement convertis pour être visibles.</li>
+                    </ul>
+                    <p className="mt-3 text-[10px] text-blue-500 italic">
+                      Note : Si l'importation directe échoue, assurez-vous que Firebase Storage est activé dans votre console Firebase avec les règles appropriées.
+                    </p>
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Nom du Site</label>
@@ -1028,12 +1054,22 @@ export default function AdminDashboard() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image Logo</label>
+                      {siteSettings.logoImage && (
+                        <div className="mb-2 relative group w-20 h-20">
+                          <img 
+                            src={siteSettings.logoImage} 
+                            className="w-full h-full rounded-2xl object-contain bg-gray-50 border border-gray-100" 
+                            referrerPolicy="no-referrer"
+                            alt="Logo Preview"
+                          />
+                        </div>
+                      )}
                       <div className="flex gap-2">
                         <input
                           className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
                           value={siteSettings.logoImage}
-                          onChange={(e) => setSiteSettings({...siteSettings, logoImage: e.target.value})}
-                          placeholder="URL de l'image"
+                          onChange={(e) => setSiteSettings({...siteSettings, logoImage: getDirectImageUrl(e.target.value)})}
+                          placeholder="URL de l'image (Directe, Drive, Dropbox...)"
                         />
                         <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
                           {uploading === 'logoImage' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
@@ -1174,12 +1210,22 @@ export default function AdminDashboard() {
                     </div>
                     <div className="space-y-2">
                       <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image de Profil</label>
+                      {heroContent.profileImage && (
+                        <div className="mb-2 relative group w-32 h-32">
+                          <img 
+                            src={heroContent.profileImage} 
+                            className="w-full h-full rounded-2xl object-cover border border-gray-100" 
+                            referrerPolicy="no-referrer"
+                            alt="Profile Preview"
+                          />
+                        </div>
+                      )}
                       <div className="flex gap-2">
                         <input
                           className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
                           value={heroContent.profileImage}
-                          onChange={(e) => setHeroContent({...heroContent, profileImage: e.target.value})}
-                          placeholder="URL de l'image"
+                          onChange={(e) => setHeroContent({...heroContent, profileImage: getDirectImageUrl(e.target.value)})}
+                          placeholder="URL de l'image (Directe, Drive, Dropbox...)"
                         />
                         <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
                           {uploading === 'profileImage' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
@@ -1215,7 +1261,7 @@ export default function AdminDashboard() {
                   {services.map(s => (
                     <div key={s.id} className="bg-white p-6 rounded-3xl border border-gray-100 flex items-center justify-between">
                         <div className="flex items-center space-x-4">
-                          <img src={s.thumbnail} className="w-16 h-16 rounded-2xl object-cover" />
+                          <img src={s.thumbnail} className="w-16 h-16 rounded-2xl object-cover" referrerPolicy="no-referrer" />
                           <div>
                             <div className="flex items-center space-x-2">
                               <h4 className="font-bold text-gray-900">{s.title}</h4>
@@ -1255,7 +1301,7 @@ export default function AdminDashboard() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {portfolio.map(p => (
                     <div key={p.id} className="bg-white p-6 rounded-3xl border border-gray-100 space-y-4">
-                      <img src={p.image} className="w-full h-48 rounded-2xl object-cover" />
+                      <img src={p.image} className="w-full h-48 rounded-2xl object-cover" referrerPolicy="no-referrer" />
                       <div className="flex justify-between items-start">
                         <div>
                           <div className="flex items-center space-x-2">
@@ -1299,7 +1345,7 @@ export default function AdminDashboard() {
                           Active
                         </div>
                         <div className="flex items-center space-x-6 mb-6">
-                          <img src={s.thumbnail} className="w-20 h-20 rounded-2xl object-cover" />
+                          <img src={s.thumbnail} className="w-20 h-20 rounded-2xl object-cover" referrerPolicy="no-referrer" />
                           <div>
                             <h3 className="text-xl font-bold text-gray-900">{s.title}</h3>
                             <p className="text-sm text-gray-500">{s.categoryId}</p>
@@ -1346,7 +1392,7 @@ export default function AdminDashboard() {
                   {news.map(n => (
                     <div key={n.id} className="bg-white p-6 rounded-3xl border border-gray-100 flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <img src={n.image} className="w-16 h-16 rounded-2xl object-cover" />
+                        <img src={n.image} className="w-16 h-16 rounded-2xl object-cover" referrerPolicy="no-referrer" />
                         <div>
                           <div className="flex items-center space-x-2">
                             <h4 className="font-bold text-gray-900">{n.title}</h4>
@@ -1539,12 +1585,22 @@ export default function AdminDashboard() {
                         </div>
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image</label>
+                          {editingItem.thumbnail && (
+                            <div className="mb-2 relative group w-32 h-32">
+                              <img 
+                                src={editingItem.thumbnail} 
+                                className="w-full h-full rounded-2xl object-cover border border-gray-100" 
+                                referrerPolicy="no-referrer"
+                                alt="Preview"
+                              />
+                            </div>
+                          )}
                           <div className="flex gap-2">
                             <input
                               className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
                               value={editingItem.thumbnail}
-                              onChange={(e) => setEditingItem({...editingItem, thumbnail: e.target.value})}
-                              placeholder="URL de l'image"
+                              onChange={(e) => setEditingItem({...editingItem, thumbnail: getDirectImageUrl(e.target.value)})}
+                              placeholder="URL de l'image (Directe, Drive, Dropbox...)"
                             />
                             <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
                               {uploading === 'thumbnail' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
@@ -1636,12 +1692,22 @@ export default function AdminDashboard() {
                         </div>
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image</label>
+                          {editingItem.image && (
+                            <div className="mb-2 relative group w-32 h-32">
+                              <img 
+                                src={editingItem.image} 
+                                className="w-full h-full rounded-2xl object-cover border border-gray-100" 
+                                referrerPolicy="no-referrer"
+                                alt="Preview"
+                              />
+                            </div>
+                          )}
                           <div className="flex gap-2">
                             <input
                               className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
                               value={editingItem.image}
-                              onChange={(e) => setEditingItem({...editingItem, image: e.target.value})}
-                              placeholder="URL de l'image"
+                              onChange={(e) => setEditingItem({...editingItem, image: getDirectImageUrl(e.target.value)})}
+                              placeholder="URL de l'image (Directe, Drive, Dropbox...)"
                             />
                             <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
                               {uploading === 'portfolioImage' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
@@ -1681,12 +1747,22 @@ export default function AdminDashboard() {
                         </div>
                         <div className="space-y-2">
                           <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Image</label>
+                          {editingItem.image && (
+                            <div className="mb-2 relative group w-32 h-32">
+                              <img 
+                                src={editingItem.image} 
+                                className="w-full h-full rounded-2xl object-cover border border-gray-100" 
+                                referrerPolicy="no-referrer"
+                                alt="Preview"
+                              />
+                            </div>
+                          )}
                           <div className="flex gap-2">
                             <input
                               className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
                               value={editingItem.image}
-                              onChange={(e) => setEditingItem({...editingItem, image: e.target.value})}
-                              placeholder="URL de l'image"
+                              onChange={(e) => setEditingItem({...editingItem, image: getDirectImageUrl(e.target.value)})}
+                              placeholder="URL de l'image (Directe, Drive, Dropbox...)"
                             />
                             <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
                               {uploading === 'newsImage' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
