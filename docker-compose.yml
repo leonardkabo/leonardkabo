@@ -3,16 +3,16 @@ services:
     build: .
     container_name: leonardkabo-site
     restart: always
-    # CETTE LIGNE EST LA CLÉ : Elle injecte le .env du VPS dans le conteneur
     env_file: .env 
     networks:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.leonard-site.rule=Host(`leonardkabo.cloud`) || Host(`www.leonardkabo.cloud`)"
-      - "traefik.http.routers.leonardkabo.entrypoints=websecure"
-      - "traefik.http.routers.leonardkabo.tls.certresolver=mytlschallenge"
-      - "traefik.http.services.leonardkabo.loadbalancer.server.port=3000"
+      # On utilise le même nom partout : leonardkabo-site
+      - "traefik.http.routers.leonardkabo-site.rule=Host(`leonardkabo.cloud`) || Host(`www.leonardkabo.cloud`)"
+      - "traefik.http.routers.leonardkabo-site.entrypoints=websecure"
+      - "traefik.http.routers.leonardkabo-site.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.leonardkabo-site.loadbalancer.server.port=3000"
 
 networks:
   traefik-network:
