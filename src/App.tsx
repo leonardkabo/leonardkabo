@@ -4,22 +4,30 @@
  */
 
 import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
-import React, { useEffect } from 'react';
+import React, { useEffect, Suspense, lazy } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import Hero from './components/Hero';
-import ServicesGrid from './components/ServicesGrid';
-import Portfolio from './components/Portfolio';
-import ServiceDetail from './components/ServiceDetail';
-import AppointmentForm from './components/AppointmentForm';
-import QuoteForm from './components/QuoteForm';
-import AdminLogin from './components/AdminLogin';
-import AdminDashboard from './components/AdminDashboard';
-import BookingCTA from './components/BookingCTA';
 import { motion, AnimatePresence } from 'motion/react';
 import SEO from './components/SEO';
 import LoadingScreen from './components/LoadingScreen';
 import { useSiteData } from './hooks/useSiteData';
+
+// Lazy load components
+const Hero = lazy(() => import('./components/Hero'));
+const ServicesGrid = lazy(() => import('./components/ServicesGrid'));
+const Portfolio = lazy(() => import('./components/Portfolio'));
+const ServiceDetail = lazy(() => import('./components/ServiceDetail'));
+const AppointmentForm = lazy(() => import('./components/AppointmentForm'));
+const QuoteForm = lazy(() => import('./components/QuoteForm'));
+const AdminLogin = lazy(() => import('./components/AdminLogin'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const BookingCTA = lazy(() => import('./components/BookingCTA'));
+const MapSection = lazy(() => import('./components/MapSection'));
+const BlogSection = lazy(() => import('./components/BlogSection'));
+const NewsList = lazy(() => import('./components/NewsList'));
+const NewsDetail = lazy(() => import('./components/NewsDetail'));
+const LegalPage = lazy(() => import('./components/LegalPage'));
+const ContactForm = lazy(() => import('./components/ContactForm'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -28,14 +36,6 @@ function ScrollToTop() {
   }, [pathname]);
   return null;
 }
-
-import MapSection from './components/MapSection';
-import BlogSection from './components/BlogSection';
-
-import NewsList from './components/NewsList';
-import NewsDetail from './components/NewsDetail';
-import LegalPage from './components/LegalPage';
-import ContactForm from './components/ContactForm';
 
 function PageWrapper({ children }: { children: React.ReactNode }) {
   return (
@@ -63,7 +63,8 @@ export default function App() {
         <Navbar />
         <main>
           <AnimatePresence mode="wait">
-            <Routes>
+            <Suspense fallback={<div className="min-h-screen" />}>
+              <Routes>
               <Route
                 path="/"
                 element={
@@ -214,8 +215,9 @@ export default function App() {
                 }
               />
             </Routes>
-          </AnimatePresence>
-        </main>
+          </Suspense>
+        </AnimatePresence>
+      </main>
         <Footer />
       </div>
     </Router>

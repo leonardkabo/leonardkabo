@@ -83,6 +83,7 @@ export default function ServicesGrid() {
                     <img 
                       src={service.thumbnail || `https://picsum.photos/seed/${service.id}/800/600`} 
                       alt={service.title}
+                      loading="lazy"
                       className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80"
                       referrerPolicy="no-referrer"
                     />
