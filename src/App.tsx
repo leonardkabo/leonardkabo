@@ -77,6 +77,7 @@ export default function App() {
                   <PageWrapper>
                     <SEO title="Mes Services" description="Découvrez mes services en transformation numérique, multimédia et innovation sociale." />
                     <div className="pt-20">
+                      <ServicesGrid />
                     </div>
                   </PageWrapper>
                 }
@@ -95,6 +96,7 @@ export default function App() {
                   <PageWrapper>
                     <SEO title="Mes Réalisations" description="Explorez mes projets et réalisations dans le domaine du numérique et de l'innovation." />
                     <div className="pt-20">
+                      <Portfolio />
                     </div>
                   </PageWrapper>
                 }
@@ -105,6 +107,7 @@ export default function App() {
                   <PageWrapper>
                     <SEO title="Prendre Rendez-vous" description="Réservez une consultation pour discuter de vos projets numériques." />
                     <div className="pt-20">
+                      <AppointmentForm />
                     </div>
                   </PageWrapper>
                 }
@@ -115,6 +118,7 @@ export default function App() {
                   <PageWrapper>
                     <SEO title="Demander un Devis" description="Obtenez un devis personnalisé pour vos besoins en transformation numérique." />
                     <div className="pt-20">
+                      <QuoteForm />
                     </div>
                   </PageWrapper>
                 }
