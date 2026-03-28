@@ -9,7 +9,7 @@ services:
       - traefik-network
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.leonardkabo.rule=Host(`leonardkabo.cloud`)"
+      - "traefik.http.routers.leonard-site.rule=Host(`leonardkabo.cloud`) || Host(`www.leonardkabo.cloud`)"
       - "traefik.http.routers.leonardkabo.entrypoints=websecure"
       - "traefik.http.routers.leonardkabo.tls.certresolver=mytlschallenge"
       - "traefik.http.services.leonardkabo.loadbalancer.server.port=3000"
