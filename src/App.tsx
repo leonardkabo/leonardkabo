@@ -18,6 +18,8 @@ import AdminDashboard from './components/AdminDashboard';
 import BookingCTA from './components/BookingCTA';
 import { motion, AnimatePresence } from 'motion/react';
 import SEO from './components/SEO';
+import LoadingScreen from './components/LoadingScreen';
+import { useSiteData } from './hooks/useSiteData';
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -49,9 +51,14 @@ function PageWrapper({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
+  const { loading } = useSiteData();
+
   return (
     <Router>
       <ScrollToTop />
+      <AnimatePresence>
+        {loading && <LoadingScreen />}
+      </AnimatePresence>
       <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-600">
         <Navbar />
         <main>

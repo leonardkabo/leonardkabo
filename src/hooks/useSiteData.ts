@@ -221,7 +221,7 @@ export function useSiteData() {
     };
   }, []);
 
-  const loading = !loaded.settings && !loaded.hero && !loaded.services && !loaded.portfolio && !loaded.news;
+  const loading = !loaded.settings || !loaded.hero || !loaded.services || !loaded.portfolio || !loaded.news;
 
   return { settings, hero, services, portfolio, news, loading };
 }
