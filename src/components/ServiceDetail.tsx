@@ -10,6 +10,7 @@ import { motion } from 'motion/react';
 import { Check, ArrowLeft, Calendar, FileText, Star, Clock, ShieldCheck, Zap, Tag } from 'lucide-react';
 import { cn, formatPrice } from '../lib/utils';
 import Button from './ui/Button';
+import SEO from './SEO';
 
 export default function ServiceDetail() {
   const { slug } = useParams();
@@ -36,6 +37,11 @@ export default function ServiceDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 pt-32 pb-24">
+      <SEO 
+        title={service.title} 
+        description={service.tagline || service.description?.main} 
+        image={service.thumbnail}
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <Button
           variant="outline"

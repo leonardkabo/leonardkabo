@@ -91,7 +91,7 @@ export default function AdminDashboard() {
     console.error('Firestore Error: ', JSON.stringify(errInfo));
   };
 
-  const handleImageUpload = async (file: File, path: string, fieldId: string, callback: (url: string) => void) => {
+  const handleFileUpload = async (file: File, path: string, fieldId: string, callback: (url: string) => void) => {
     if (!file) return;
     setUploading(fieldId);
     try {
@@ -99,10 +99,10 @@ export default function AdminDashboard() {
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       callback(url);
-      setShowSuccess('Image téléchargée avec succès !');
+      setShowSuccess('Fichier téléchargé avec succès !');
     } catch (error: any) {
       console.error('Upload error:', error);
-      let errorMsg = 'Erreur lors du téléchargement de l\'image.';
+      let errorMsg = 'Erreur lors du téléchargement du fichier.';
       if (error.code === 'storage/unauthorized') {
         errorMsg = 'Permission refusée. Veuillez vérifier vos règles de sécurité Firebase Storage.';
       } else if (error.code === 'storage/canceled') {
@@ -1079,7 +1079,7 @@ export default function AdminDashboard() {
                             accept="image/*"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
-                              if (file) handleImageUpload(file, 'settings', 'logoImage', (url) => setSiteSettings({...siteSettings, logoImage: url}));
+                                  if (file) handleFileUpload(file, 'settings', 'logoImage', (url) => setSiteSettings({...siteSettings, logoImage: url}));
                             }}
                           />
                         </label>
@@ -1235,7 +1235,7 @@ export default function AdminDashboard() {
                             accept="image/*"
                             onChange={(e) => {
                               const file = e.target.files?.[0];
-                              if (file) handleImageUpload(file, 'hero', 'profileImage', (url) => setHeroContent({...heroContent, profileImage: url}));
+                                  if (file) handleFileUpload(file, 'hero', 'profileImage', (url) => setHeroContent({...heroContent, profileImage: url}));
                             }}
                           />
                         </label>
@@ -1610,7 +1610,7 @@ export default function AdminDashboard() {
                                 accept="image/*"
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
-                                  if (file) handleImageUpload(file, 'services', 'thumbnail', (url) => setEditingItem({...editingItem, thumbnail: url}));
+                                  if (file) handleFileUpload(file, 'services', 'thumbnail', (url) => setEditingItem({...editingItem, thumbnail: url}));
                                 }}
                               />
                             </label>
@@ -1701,7 +1701,7 @@ export default function AdminDashboard() {
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
                                   if (file) {
-                                    handleImageUpload(file, 'services/gallery', 'gallery-new', (url) => {
+                                    handleFileUpload(file, 'services/gallery', 'gallery-new', (url) => {
                                       const newGallery = [...(editingItem.gallery || []), url];
                                       setEditingItem({...editingItem, gallery: newGallery});
                                     });
@@ -1802,7 +1802,39 @@ export default function AdminDashboard() {
                                 accept="image/*"
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
-                                  if (file) handleImageUpload(file, 'portfolio', 'portfolioImage', (url) => setEditingItem({...editingItem, image: url}));
+                                  if (file) handleFileUpload(file, 'portfolio', 'portfolioImage', (url) => setEditingItem({...editingItem, image: url}));
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Vidéo (Optionnel)</label>
+                          {editingItem.video && (
+                            <div className="mb-2 relative group w-full aspect-video max-w-xs">
+                              <video 
+                                src={editingItem.video} 
+                                className="w-full h-full rounded-2xl object-cover border border-gray-100" 
+                                controls
+                              />
+                            </div>
+                          )}
+                          <div className="flex gap-2">
+                            <input
+                              className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                              value={editingItem.video || ''}
+                              onChange={(e) => setEditingItem({...editingItem, video: e.target.value})}
+                              placeholder="URL de la vidéo (Directe, YouTube, Vimeo...)"
+                            />
+                            <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
+                              {uploading === 'portfolioVideo' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                accept="video/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleFileUpload(file, 'portfolio/videos', 'portfolioVideo', (url) => setEditingItem({...editingItem, video: url}));
                                 }}
                               />
                             </label>
@@ -1857,7 +1889,39 @@ export default function AdminDashboard() {
                                 accept="image/*"
                                 onChange={(e) => {
                                   const file = e.target.files?.[0];
-                                  if (file) handleImageUpload(file, 'news', 'newsImage', (url) => setEditingItem({...editingItem, image: url}));
+                                  if (file) handleFileUpload(file, 'news', 'newsImage', (url) => setEditingItem({...editingItem, image: url}));
+                                }}
+                              />
+                            </label>
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Vidéo (Optionnel)</label>
+                          {editingItem.video && (
+                            <div className="mb-2 relative group w-full aspect-video max-w-xs">
+                              <video 
+                                src={editingItem.video} 
+                                className="w-full h-full rounded-2xl object-cover border border-gray-100" 
+                                controls
+                              />
+                            </div>
+                          )}
+                          <div className="flex gap-2">
+                            <input
+                              className="flex-1 bg-gray-50 p-4 rounded-2xl border-2 border-transparent focus:border-blue-600/20 outline-none"
+                              value={editingItem.video || ''}
+                              onChange={(e) => setEditingItem({...editingItem, video: e.target.value})}
+                              placeholder="URL de la vidéo (Directe, YouTube, Vimeo...)"
+                            />
+                            <label className="cursor-pointer bg-blue-600 text-white p-4 rounded-2xl hover:bg-blue-700 transition-colors flex items-center justify-center min-w-[56px]">
+                              {uploading === 'newsVideo' ? <Loader2 size={20} className="animate-spin" /> : <Upload size={20} />}
+                              <input 
+                                type="file" 
+                                className="hidden" 
+                                accept="video/*"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) handleFileUpload(file, 'news/videos', 'newsVideo', (url) => setEditingItem({...editingItem, video: url}));
                                 }}
                               />
                             </label>

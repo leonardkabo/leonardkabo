@@ -83,14 +83,26 @@ export default function Portfolio() {
                 className="group relative bg-white rounded-[2.5rem] overflow-hidden shadow-xl shadow-gray-200/20 hover:shadow-2xl hover:shadow-blue-600/10 transition-all duration-500"
               >
                 <div className="aspect-[4/3] overflow-hidden relative">
-                  <img
-                    src={item.image}
-                    alt={item.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-gray-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-8">
+                  {item.video ? (
+                    <video
+                      src={item.video}
+                      className="w-full h-full object-cover"
+                      controls
+                      muted
+                      loop
+                      onMouseOver={(e) => (e.target as HTMLVideoElement).play()}
+                      onMouseOut={(e) => (e.target as HTMLVideoElement).pause()}
+                    />
+                  ) : (
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
+                  <div className="absolute inset-0 bg-gradient-to-t from-gray-900/80 via-gray-900/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex items-end p-8 pointer-events-none">
                     <div className="flex gap-2">
                       {item.technologies?.map((tech: string) => (
                         <span key={tech} className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider">

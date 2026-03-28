@@ -8,6 +8,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useSiteData } from '../hooks/useSiteData';
 import { Clock, User, Calendar, ArrowLeft, Share2 } from 'lucide-react';
 import Button from './ui/Button';
+import SEO from './SEO';
 
 export default function NewsDetail() {
   const { id } = useParams();
@@ -48,6 +49,12 @@ export default function NewsDetail() {
 
   return (
     <div className="pt-32 pb-20 bg-white min-h-screen">
+      <SEO 
+        title={item.title} 
+        description={item.body?.substring(0, 160)} 
+        image={item.image}
+        type="article"
+      />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -83,7 +90,15 @@ export default function NewsDetail() {
             </div>
           </div>
 
-          {item.image && (
+          {item.video ? (
+            <div className="aspect-video rounded-[3rem] overflow-hidden shadow-2xl shadow-blue-900/10 bg-black">
+              <video 
+                src={item.video} 
+                className="w-full h-full object-contain"
+                controls
+              />
+            </div>
+          ) : item.image && (
             <div className="aspect-video rounded-[3rem] overflow-hidden shadow-2xl shadow-blue-900/10">
               <img 
                 src={item.image} 

@@ -53,14 +53,29 @@ export default function NewsList() {
               transition={{ delay: index * 0.1 }}
               className="group bg-white rounded-[2.5rem] p-8 border border-gray-100 hover:border-blue-600/10 hover:shadow-2xl hover:shadow-blue-900/5 transition-all duration-500 flex flex-col h-full"
             >
-              {item.image && (
-                <div className="aspect-video rounded-3xl overflow-hidden mb-6">
-                  <img 
-                    src={item.image} 
-                    alt={item.title} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    referrerPolicy="no-referrer"
-                  />
+              {(item.video || item.image) && (
+                <div className="aspect-video rounded-3xl overflow-hidden mb-6 relative group/media">
+                  {item.video ? (
+                    <div className="w-full h-full relative">
+                      <video 
+                        src={item.video} 
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        muted
+                      />
+                      <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover/media:opacity-100 transition-opacity">
+                        <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center text-blue-600 shadow-xl">
+                          <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[12px] border-l-current border-b-[8px] border-b-transparent ml-1" />
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <img 
+                      src={item.image} 
+                      alt={item.title} 
+                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      referrerPolicy="no-referrer"
+                    />
+                  )}
                 </div>
               )}
               
