@@ -61,16 +61,19 @@ export default function AdminDashboard() {
   });
   
   const [heroContent, setHeroContent] = useState<any>({
-    badge: "Producteur Multimédia | Journaliste | Développeur Web | Activiste DSSR",
-    title: "Eboun Léonard",
-    subtitle: "KABO",
-    description: "Expert en transformation numérique, je mets mes compétences au service du changement social et de la performance numérique.",
+    badge: "Expert en Transformation Numérique | Multimédia | IA",
+    title: "Eboun Léonard KABO",
+    subtitle: "Expert en Transformation Numérique",
+    description: "Expert en transformation numérique, je mets mes compétences au service du changement social et de la performance numérique. De la production multimédia haute définition à la conception d'outils d'automatisation intelligents.",
     ctaText: "Explorer mes Services",
     ctaLink: "/services",
     secondaryCtaText: "Me Contacter",
     secondaryCtaLink: "/contact",
-    profileImage: "/profile.jpg",
-    stats: []
+    profileImage: "https://picsum.photos/seed/profile/800/800",
+    stats: [
+      { value: "2", label: "Livres Publiés", sublabel: "Auteur Engagé", color: "emerald" },
+      { value: "+5", label: "Ans d'Expérience", sublabel: "Expertise Pro", color: "blue" }
+    ]
   });
 
   const [mapConfig, setMapConfig] = useState({ lat: 9.3372, lng: 2.6288 });
@@ -272,6 +275,22 @@ export default function AdminDashboard() {
   const initializeData = async () => {
     setSaving(true);
     try {
+      // Initialize Hero
+      await setDoc(doc(db, 'sections', 'hero'), {
+        badge: "Expert en Transformation Numérique | Multimédia | IA",
+        title: "Eboun Léonard KABO",
+        subtitle: "Expert en Transformation Numérique",
+        description: "Expert en transformation numérique, je mets mes compétences au service du changement social et de la performance numérique. De la production multimédia haute définition à la conception d'outils d'automatisation intelligents.",
+        ctaText: "Explorer mes Services",
+        ctaLink: "/services",
+        secondaryCtaText: "Me Contacter",
+        secondaryCtaLink: "/contact",
+        profileImage: "https://picsum.photos/seed/profile/800/800",
+        stats: [
+          { value: "2", label: "Livres Publiés", sublabel: "Auteur Engagé", color: "emerald" },
+          { value: "+5", label: "Ans d'Expérience", sublabel: "Expertise Pro", color: "blue" }
+        ]
+      });
       // Initialize Services
       for (const s of staticServices) {
         await setDoc(doc(db, 'services', s.id), {
@@ -1239,6 +1258,60 @@ export default function AdminDashboard() {
                             }}
                           />
                         </label>
+                      </div>
+                    </div>
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest">Zones Flottantes (Stats)</label>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {[0, 1].map((idx) => (
+                          <div key={idx} className="bg-gray-50 p-6 rounded-3xl space-y-4">
+                            <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest">
+                              Zone {idx === 0 ? 'Haut' : 'Bas'}
+                            </h4>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Valeur</label>
+                              <input
+                                className="w-full bg-white p-3 rounded-xl border border-gray-200 outline-none"
+                                value={heroContent.stats?.[idx]?.value || ''}
+                                onChange={(e) => {
+                                  const newStats = [...(heroContent.stats || [{value:'',label:'',sublabel:'',color:'emerald'},{value:'',label:'',sublabel:'',color:'blue'}])];
+                                  if (!newStats[idx]) newStats[idx] = {value:'',label:'',sublabel:'',color: idx === 0 ? 'emerald' : 'blue'};
+                                  newStats[idx].value = e.target.value;
+                                  setHeroContent({...heroContent, stats: newStats});
+                                }}
+                                placeholder="ex: 2"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Libellé</label>
+                              <input
+                                className="w-full bg-white p-3 rounded-xl border border-gray-200 outline-none"
+                                value={heroContent.stats?.[idx]?.label || ''}
+                                onChange={(e) => {
+                                  const newStats = [...(heroContent.stats || [{value:'',label:'',sublabel:'',color:'emerald'},{value:'',label:'',sublabel:'',color:'blue'}])];
+                                  if (!newStats[idx]) newStats[idx] = {value:'',label:'',sublabel:'',color: idx === 0 ? 'emerald' : 'blue'};
+                                  newStats[idx].label = e.target.value;
+                                  setHeroContent({...heroContent, stats: newStats});
+                                }}
+                                placeholder="ex: Livres Publiés"
+                              />
+                            </div>
+                            <div className="space-y-2">
+                              <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Sous-libellé</label>
+                              <input
+                                className="w-full bg-white p-3 rounded-xl border border-gray-200 outline-none"
+                                value={heroContent.stats?.[idx]?.sublabel || ''}
+                                onChange={(e) => {
+                                  const newStats = [...(heroContent.stats || [{value:'',label:'',sublabel:'',color:'emerald'},{value:'',label:'',sublabel:'',color:'blue'}])];
+                                  if (!newStats[idx]) newStats[idx] = {value:'',label:'',sublabel:'',color: idx === 0 ? 'emerald' : 'blue'};
+                                  newStats[idx].sublabel = e.target.value;
+                                  setHeroContent({...heroContent, stats: newStats});
+                                }}
+                                placeholder="ex: Auteur Engagé"
+                              />
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     </div>
                   </div>

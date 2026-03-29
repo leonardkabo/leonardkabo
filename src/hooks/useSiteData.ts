@@ -113,9 +113,9 @@ export function useSiteData() {
   });
 
   const [hero, setHero] = useState<HeroContent>({
-    badge: "Producteur Multimédia | Journaliste | Développeur Web | Activiste DSSR",
-    title: "Eboun Léonard",
-    subtitle: "KABO",
+    badge: "Expert en Transformation Numérique | Multimédia | IA",
+    title: "Eboun Léonard KABO",
+    subtitle: "Expert en Transformation Numérique",
     description: "Expert en transformation numérique, je mets mes compétences au service du changement social et de la performance numérique. De la production multimédia haute définition à la conception d'outils d'automatisation intelligents.",
     ctaText: "Explorer mes Services",
     ctaLink: "/services",
@@ -123,8 +123,8 @@ export function useSiteData() {
     secondaryCtaLink: "/contact",
     profileImage: "https://picsum.photos/seed/profile/800/800",
     stats: [
-      { value: "5+", label: "Ans d'Expertise", sublabel: "Expérience Pro", color: "blue" },
-      { value: "2", label: "Livres Publiés", sublabel: "Auteur Engagé", color: "emerald" }
+      { value: "2", label: "Livres Publiés", sublabel: "Auteur Engagé", color: "emerald" },
+      { value: "+5", label: "Ans d'Expérience", sublabel: "Expertise Pro", color: "blue" }
     ]
   });
 
