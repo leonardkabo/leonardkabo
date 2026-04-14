@@ -28,6 +28,7 @@ const NewsList = lazy(() => import('./components/NewsList'));
 const NewsDetail = lazy(() => import('./components/NewsDetail'));
 const LegalPage = lazy(() => import('./components/LegalPage'));
 const ContactForm = lazy(() => import('./components/ContactForm'));
+const CountdownOverlay = lazy(() => import('./components/CountdownOverlay'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -59,6 +60,9 @@ export default function App() {
       <AnimatePresence>
         {loading && <LoadingScreen />}
       </AnimatePresence>
+      <Suspense fallback={null}>
+        <CountdownOverlay />
+      </Suspense>
       <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-600">
         <Navbar />
         <main>

@@ -15,7 +15,7 @@ import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContaine
 import Button from './ui/Button';
 import { servicesData as staticServices, portfolioItems as staticPortfolio } from '../data';
 import { SITE_NAME, SITE_TITLE, CONTACT_EMAIL, SOCIAL_LINKS } from '../constants';
-import { formatPrice, convertToEur, getDirectImageUrl } from '../lib/utils';
+import { formatPrice, convertToEur, getDirectImageUrl, cn } from '../lib/utils';
 
 enum OperationType {
   CREATE = 'create',
@@ -57,7 +57,13 @@ export default function AdminDashboard() {
     contactEmail: CONTACT_EMAIL,
     socialLinks: SOCIAL_LINKS,
     logoText: 'L. KABO',
-    logoImage: '/favicon.svg'
+    logoImage: '/favicon.svg',
+    countdown: {
+      active: false,
+      targetDate: '2026-04-15T14:00:00+01:00',
+      message: 'Nous préparons quelque chose d\'exceptionnel pour vous. Restez à l\'écoute !',
+      title: 'Lancement Officiel'
+    }
   });
   
   const [heroContent, setHeroContent] = useState<any>({
@@ -343,6 +349,26 @@ export default function AdminDashboard() {
       for (const n of defaultNews) {
         await addDoc(collection(db, 'news'), n);
       }
+      // Initialize Settings
+      await setDoc(doc(db, 'settings', 'site'), {
+        siteName: "Eboun Léonard KABO",
+        siteTitle: "Expert en Transformation Numérique",
+        contactEmail: "leonardkabo32@gmail.com",
+        logoText: "L. KABO",
+        logoImage: "/favicon.svg",
+        socialLinks: {
+          linkedin: "https://linkedin.com/in/leonardkabo",
+          twitter: "https://x.com/leonardkabo1",
+          facebook: "https://facebook.com/leonardkabo1",
+          whatsapp: "https://wa.me/22965458778"
+        },
+        countdown: {
+          active: false,
+          targetDate: "2026-04-15T14:00:00+01:00",
+          message: "Nous préparons quelque chose d'exceptionnel pour vous. Restez à l'écoute !",
+          title: "Lancement Officiel"
+        }
+      });
       setShowSuccess('Données initialisées avec succès !');
     } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'initialization'); }
     setSaving(false);
@@ -1548,6 +1574,94 @@ export default function AdminDashboard() {
                   <Button variant="warning" onClick={initializeData} isLoading={saving} icon={Globe}>
                     Initialiser les données Firestore
                   </Button>
+                </div>
+
+                {/* Countdown Settings */}
+                <div className="bg-white p-12 rounded-[3rem] shadow-sm border border-gray-100">
+                  <div className="flex items-center space-x-4 mb-8">
+                    <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
+                      <Clock size={24} />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-bold text-gray-900">Mode "Bientôt Disponible" (Countdown)</h3>
+                      <p className="text-gray-500">Activez un compte à rebours pour le lancement du site</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl">
+                      <div>
+                        <h4 className="font-bold text-gray-900">Activer le compte à rebours</h4>
+                        <p className="text-sm text-gray-500">Si activé, les visiteurs verront la page d'attente</p>
+                      </div>
+                      <button
+                        onClick={() => setSiteSettings({
+                          ...siteSettings,
+                          countdown: { ...siteSettings.countdown, active: !siteSettings.countdown?.active }
+                        })}
+                        className={cn(
+                          "w-16 h-8 rounded-full transition-colors relative",
+                          siteSettings.countdown?.active ? "bg-blue-600" : "bg-gray-200"
+                        )}
+                      >
+                        <div className={cn(
+                          "absolute top-1 w-6 h-6 bg-white rounded-full transition-all",
+                          siteSettings.countdown?.active ? "left-9" : "left-1"
+                        )} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Titre de l'événement</label>
+                        <input
+                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+                          value={siteSettings.countdown?.title || ''}
+                          onChange={(e) => setSiteSettings({
+                            ...siteSettings,
+                            countdown: { ...siteSettings.countdown, title: e.target.value }
+                          })}
+                          placeholder="ex: Lancement Officiel"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Date et Heure Cible (ISO)</label>
+                        <input
+                          type="datetime-local"
+                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+                          value={siteSettings.countdown?.targetDate ? new Date(siteSettings.countdown.targetDate).toISOString().slice(0, 16) : ''}
+                          onChange={(e) => setSiteSettings({
+                            ...siteSettings,
+                            countdown: { ...siteSettings.countdown, targetDate: new Date(e.target.value).toISOString() }
+                          })}
+                        />
+                        <p className="text-[10px] text-gray-400 italic ml-1">Note: L'heure sera convertie en UTC. Le Bénin est à UTC+1.</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Message d'attente</label>
+                      <textarea
+                        rows={3}
+                        className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all resize-none"
+                        value={siteSettings.countdown?.message || ''}
+                        onChange={(e) => setSiteSettings({
+                          ...siteSettings,
+                          countdown: { ...siteSettings.countdown, message: e.target.value }
+                        })}
+                        placeholder="Message chaleureux pour vos visiteurs..."
+                      />
+                    </div>
+
+                    <Button
+                      onClick={handleSaveSiteSettings}
+                      isLoading={saving}
+                      icon={Save}
+                      className="w-full"
+                    >
+                      Enregistrer les paramètres du Countdown
+                    </Button>
+                  </div>
                 </div>
               </motion.div>
             )}

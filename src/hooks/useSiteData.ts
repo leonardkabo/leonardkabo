@@ -51,6 +51,12 @@ export interface SiteSettings {
     appointment?: string;
     quote?: string;
   };
+  countdown?: {
+    active: boolean;
+    targetDate: string;
+    message: string;
+    title: string;
+  };
 }
 
 export interface HeroContent {
@@ -109,7 +115,13 @@ export function useSiteData() {
     siteTitle: SITE_TITLE,
     contactEmail: CONTACT_EMAIL,
     socialLinks: SOCIAL_LINKS,
-    logoText: 'L. KABO'
+    logoText: 'L. KABO',
+    countdown: {
+      active: false,
+      targetDate: '2026-04-15T14:00:00+01:00',
+      message: 'Nous préparons quelque chose d\'exceptionnel pour vous. Restez à l\'écoute !',
+      title: 'Lancement Officiel'
+    }
   });
 
   const [hero, setHero] = useState<HeroContent>({

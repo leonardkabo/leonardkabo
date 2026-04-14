@@ -14,6 +14,13 @@ service cloud.firestore {
     //   - contactEmail: string (required, email)
     //   - socialLinks: map (optional)
     //   - logoText: string (optional)
+    //   - logoImage: string (optional)
+    //   - successMessages: map (optional)
+    //   - countdown: map (optional)
+    //     - active: boolean
+    //     - targetDate: string (ISO)
+    //     - message: string
+    //     - title: string
     //
     // Collection: sections
     // Document ID: hero

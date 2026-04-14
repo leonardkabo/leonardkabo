@@ -25,6 +25,15 @@
             "appointment": { "type": "string", "description": "Success message for appointment form" },
             "quote": { "type": "string", "description": "Success message for quote form" }
           }
+        },
+        "countdown": {
+          "type": "object",
+          "properties": {
+            "active": { "type": "boolean" },
+            "targetDate": { "type": "string", "description": "ISO 8601 date string" },
+            "message": { "type": "string" },
+            "title": { "type": "string" }
+          }
         }
       },
       "required": ["siteName", "siteTitle", "contactEmail"]
