@@ -158,10 +158,37 @@
         "createdAt": { "type": "number" }
       },
       "required": ["name", "email", "subject", "message", "status", "createdAt"]
+    },
+    "VotingEvent": {
+      "title": "Voting Event",
+      "description": "Configuration and candidates for a voting event",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "rules": { "type": "string" },
+        "active": { "type": "boolean" },
+        "maxVotes": { "type": "number", "description": "Number of candidates a user can select" },
+        "candidates": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "description": { "type": "string" },
+              "imageUrl": { "type": "string" },
+              "voteCount": { "type": "number" }
+            }
+          }
+        }
+      },
+      "required": ["title", "active", "maxVotes", "candidates"]
     }
   },
   "firestore": {
     "/settings/site": { "schema": "SiteSettings", "description": "Global site configuration" },
+    "/voting/active": { "schema": "VotingEvent", "description": "The currently active voting event" },
     "/sections/hero": { "schema": "HeroSection", "description": "Hero section content" },
     "/services/{serviceId}": { "schema": "Service", "description": "List of services" },
     "/portfolio/{itemId}": { "schema": "PortfolioItem", "description": "List of portfolio items" },

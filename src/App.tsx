@@ -29,6 +29,7 @@ const NewsDetail = lazy(() => import('./components/NewsDetail'));
 const LegalPage = lazy(() => import('./components/LegalPage'));
 const ContactForm = lazy(() => import('./components/ContactForm'));
 const CountdownOverlay = lazy(() => import('./components/CountdownOverlay'));
+const VotingPage = lazy(() => import('./components/VotingPage'));
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -148,6 +149,17 @@ export default function App() {
                         </p>
                       </div>
                       <ContactForm />
+                    </div>
+                  </PageWrapper>
+                }
+              />
+              <Route
+                path="/vote"
+                element={
+                  <PageWrapper>
+                    <SEO title="Système de Vote" description="Participez aux scrutins officiels et consultez les tendances en direct." />
+                    <div className="pt-20">
+                      <VotingPage />
                     </div>
                   </PageWrapper>
                 }

@@ -109,6 +109,23 @@ export interface NewsItem {
   image: string;
 }
 
+export interface Candidate {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  voteCount: number;
+}
+
+export interface VotingEvent {
+  title: string;
+  description: string;
+  rules: string;
+  active: boolean;
+  maxVotes: number;
+  candidates: Candidate[];
+}
+
 export function useSiteData() {
   const [settings, setSettings] = useState<SiteSettings>({
     siteName: SITE_NAME,
@@ -143,12 +160,14 @@ export function useSiteData() {
   const [services, setServices] = useState<any[]>(staticServices);
   const [portfolio, setPortfolio] = useState<any[]>(staticPortfolio);
   const [news, setNews] = useState<NewsItem[]>([]);
+  const [voting, setVoting] = useState<VotingEvent | null>(null);
   const [loaded, setLoaded] = useState({
     settings: false,
     hero: false,
     services: false,
     portfolio: false,
-    news: false
+    news: false,
+    voting: false
   });
 
   useEffect(() => {
@@ -224,16 +243,29 @@ export function useSiteData() {
       setLoaded(prev => ({ ...prev, news: true }));
     });
 
+    const unsubVoting = onSnapshot(doc(db, 'voting', 'active'), (docSnap) => {
+      if (docSnap.exists()) {
+        setVoting(docSnap.data() as VotingEvent);
+      } else {
+        setVoting(null);
+      }
+      setLoaded(prev => ({ ...prev, voting: true }));
+    }, (error) => {
+      handleFirestoreError(error, OperationType.GET, 'voting/active');
+      setLoaded(prev => ({ ...prev, voting: true }));
+    });
+
     return () => {
       unsubSettings();
       unsubHero();
       unsubServices();
       unsubPortfolio();
       unsubNews();
+      unsubVoting();
     };
   }, []);
 
-  const loading = !loaded.settings || !loaded.hero || !loaded.services || !loaded.portfolio || !loaded.news;
+  const loading = !loaded.settings || !loaded.hero || !loaded.services || !loaded.portfolio || !loaded.news || !loaded.voting;
 
-  return { settings, hero, services, portfolio, news, loading };
+  return { settings, hero, services, portfolio, news, voting, loading };
 }

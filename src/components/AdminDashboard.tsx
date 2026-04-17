@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, Eye, Upload, Loader2 } from 'lucide-react';
+import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, Eye, Upload, Loader2, Vote, Info } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db, storage } from '../firebase';
@@ -36,7 +36,7 @@ export default function AdminDashboard() {
   const [services, setServices] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [news, setNews] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'contacts' | 'content' | 'services' | 'portfolio' | 'news' | 'settings' | 'promos'>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'contacts' | 'content' | 'services' | 'portfolio' | 'news' | 'settings' | 'promos' | 'voting'>('appointments');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -64,6 +64,15 @@ export default function AdminDashboard() {
       message: 'Nous préparons quelque chose d\'exceptionnel pour vous. Restez à l\'écoute !',
       title: 'Lancement Officiel'
     }
+  });
+
+  const [votingContent, setVotingContent] = useState<any>({
+    title: "",
+    description: "",
+    rules: "",
+    active: false,
+    maxVotes: 1,
+    candidates: []
   });
   
   const [heroContent, setHeroContent] = useState<any>({
@@ -177,6 +186,10 @@ export default function AdminDashboard() {
       if (docSnap.exists()) setHeroContent(docSnap.data());
     }, (error) => handleFirestoreError(error, OperationType.GET, 'sections/hero'));
 
+    const unsubVoting = onSnapshot(doc(db, 'voting', 'active'), (docSnap) => {
+      if (docSnap.exists()) setVotingContent(docSnap.data());
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'voting/active'));
+
     getDoc(doc(db, 'settings', 'mapConfig')).then((docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -191,6 +204,7 @@ export default function AdminDashboard() {
       unsubServices();
       unsubPortfolio();
       unsubNews();
+      unsubVoting();
     };
   }, [user]);
 
@@ -209,6 +223,15 @@ export default function AdminDashboard() {
       await setDoc(doc(db, 'sections', 'hero'), heroContent);
       setShowSuccess('Contenu Hero enregistré !');
     } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'sections/hero'); }
+    setSaving(false);
+  };
+
+  const handleSaveVoting = async () => {
+    setSaving(true);
+    try {
+      await setDoc(doc(db, 'voting', 'active'), votingContent);
+      setShowSuccess('Système de vote mis à jour !');
+    } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'voting/active'); }
     setSaving(false);
   };
 
@@ -368,6 +391,19 @@ export default function AdminDashboard() {
           message: "Nous préparons quelque chose d'exceptionnel pour vous. Restez à l'écoute !",
           title: "Lancement Officiel"
         }
+      });
+      // Initialize Voting
+      await setDoc(doc(db, 'voting', 'active'), {
+        title: "Élection du Meilleur Projet de l'Année",
+        description: "Votez pour le projet qui a eu le plus d'impact numérique et social cette année.",
+        rules: "1. Le vote est ouvert à tous les visiteurs.\n2. Vous pouvez voter pour un maximum de 2 candidats.\n3. Chaque utilisateur ne peut voter qu'une seule fois.\n4. Les résultats sont affichés en temps réel après votre vote.",
+        active: false,
+        maxVotes: 2,
+        candidates: [
+          { id: "c1", name: "Projet Alpha", description: "Plateforme d'e-santé pour les zones rurales.", imageUrl: "https://picsum.photos/seed/alpha/800/1000", voteCount: 15 },
+          { id: "c2", name: "Système Beta", description: "Solution de domotique intelligente à bas coût.", imageUrl: "https://picsum.photos/seed/beta/800/1000", voteCount: 22 },
+          { id: "c3", name: "Initiative Gamma", description: "Programme de formation IA pour les jeunes.", imageUrl: "https://picsum.photos/seed/gamma/800/1000", voteCount: 18 }
+        ]
       });
       setShowSuccess('Données initialisées avec succès !');
     } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'initialization'); }
@@ -751,6 +787,13 @@ export default function AdminDashboard() {
             icon={FileText}
           >
             Actualités ({news.length})
+          </Button>
+          <Button
+            variant={activeTab === 'voting' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('voting')}
+            icon={Vote}
+          >
+            Système de Vote
           </Button>
           <Button
             variant={activeTab === 'settings' ? 'primary' : 'outline'}
@@ -1508,6 +1551,243 @@ export default function AdminDashboard() {
                       </div>
                     </div>
                   ))}
+                </div>
+              </motion.div>
+            ) : activeTab === 'voting' ? (
+              <motion.div
+                key="voting-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-12 pb-24"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tighter">Gestion du Vote</h2>
+                    <p className="text-gray-500 font-medium italic">Configurez vos scrutins officiels en temps réel.</p>
+                  </div>
+                  <div className="flex items-center space-x-4">
+                    <Button onClick={handleSaveVoting} isLoading={saving} icon={Save}>Enregistrer les Changements</Button>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {/* Configuration Générale */}
+                  <div className="bg-white p-12 rounded-[3.5rem] shadow-sm border border-gray-100 space-y-8">
+                    <div className="flex items-center space-x-3 mb-4">
+                      <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                        <Settings size={24} />
+                      </div>
+                      <h3 className="text-2xl font-black text-gray-900">Configuration</h3>
+                    </div>
+
+                    <div className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl mb-8">
+                      <div>
+                        <h4 className="font-bold text-gray-900">Status du Vote</h4>
+                        <p className="text-sm text-gray-400">Activer l'accès public à cette session</p>
+                      </div>
+                      <button
+                        onClick={() => setVotingContent({ ...votingContent, active: !votingContent.active })}
+                        className={cn(
+                          "w-16 h-8 rounded-full transition-colors relative",
+                          votingContent.active ? "bg-blue-600" : "bg-gray-200"
+                        )}
+                      >
+                        <div className={cn(
+                          "absolute top-1 w-6 h-6 bg-white rounded-full transition-all",
+                          votingContent.active ? "left-9" : "left-1"
+                        )} />
+                      </button>
+                    </div>
+
+                    <div className="space-y-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Titre de la Session</label>
+                        <input
+                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+                          value={votingContent.title}
+                          onChange={(e) => setVotingContent({ ...votingContent, title: e.target.value })}
+                          placeholder="ex: Meilleur Projet 2026"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Votes Max par Utilisateur</label>
+                        <input
+                          type="number"
+                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+                          value={votingContent.maxVotes}
+                          onChange={(e) => setVotingContent({ ...votingContent, maxVotes: parseInt(e.target.value) })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Description</label>
+                        <textarea
+                          rows={3}
+                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all resize-none"
+                          value={votingContent.description}
+                          onChange={(e) => setVotingContent({ ...votingContent, description: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Règlement / Rules */}
+                  <div className="bg-white p-12 rounded-[3.5rem] shadow-sm border border-gray-100 flex flex-col">
+                    <div className="flex items-center space-x-3 mb-8">
+                      <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
+                        <Info size={24} />
+                      </div>
+                      <h3 className="text-2xl font-black text-gray-900">Règlement du Scrutin</h3>
+                    </div>
+                    <textarea
+                      className="flex-1 w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-6 px-6 outline-none transition-all resize-none font-medium min-h-[300px]"
+                      value={votingContent.rules}
+                      onChange={(e) => setVotingContent({ ...votingContent, rules: e.target.value })}
+                      placeholder="Décrivez ici les règles et conditions du vote..."
+                    />
+                  </div>
+                </div>
+
+                {/* Gestion des Candidats */}
+                <div className="bg-white p-12 rounded-[4rem] shadow-sm border border-gray-100">
+                  <div className="flex justify-between items-center mb-12">
+                    <div className="flex items-center space-x-3">
+                      <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
+                        <Users size={24} />
+                      </div>
+                      <h3 className="text-3xl font-black text-gray-900 tracking-tighter">Candidats</h3>
+                    </div>
+                    <Button
+                      size="sm"
+                      icon={Plus}
+                      onClick={() => setVotingContent({
+                        ...votingContent,
+                        candidates: [
+                          ...votingContent.candidates,
+                          { id: Math.random().toString(36).substring(2), name: `Candidat ${votingContent.candidates.length + 1}`, description: "Description...", imageUrl: `https://picsum.photos/seed/${Math.random()}/800/1000`, voteCount: 0 }
+                        ]
+                      })}
+                    >
+                      Ajouter un Candidat
+                    </Button>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {votingContent.candidates.map((candidate: any, index: number) => (
+                      <div key={candidate.id} className="bg-gray-50 p-8 rounded-[3rem] space-y-6 relative group overflow-hidden border-2 border-transparent hover:border-blue-600/20 transition-all">
+                        <div className="flex items-start justify-between">
+                          <div className="relative w-24 h-24">
+                            <img 
+                              src={candidate.imageUrl} 
+                              className="w-24 h-24 rounded-2xl object-cover shadow-lg"
+                              referrerPolicy="no-referrer"
+                            />
+                            <div className="absolute -top-2 -right-2">
+                              <input
+                                type="file"
+                                id={`candidate-img-${candidate.id}`}
+                                className="hidden"
+                                onChange={(e) => {
+                                  if (e.target.files?.[0]) {
+                                    handleFileUpload(e.target.files[0], 'voting', candidate.id, (url) => {
+                                      const newCandidates = [...votingContent.candidates];
+                                      newCandidates[index].imageUrl = url;
+                                      setVotingContent({ ...votingContent, candidates: newCandidates });
+                                    });
+                                  }
+                                }}
+                              />
+                              <label
+                                htmlFor={`candidate-img-${candidate.id}`}
+                                className="w-8 h-8 bg-white text-blue-600 rounded-xl shadow-lg flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
+                              >
+                                {uploading === candidate.id ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
+                              </label>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-black text-blue-400 uppercase tracking-widest">Vote Count</span>
+                            <div className="text-3xl font-black text-blue-600 tabular-nums">
+                              {candidate.voteCount || 0}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="space-y-4">
+                          <input
+                            className="w-full bg-white border-none rounded-xl py-3 px-4 font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-600/20"
+                            value={candidate.name}
+                            onChange={(e) => {
+                              const newCandidates = [...votingContent.candidates];
+                              newCandidates[index].name = e.target.value;
+                              setVotingContent({ ...votingContent, candidates: newCandidates });
+                            }}
+                          />
+                          <textarea
+                            rows={2}
+                            className="w-full bg-white border-none rounded-xl py-3 px-4 text-sm font-medium text-gray-500 outline-none focus:ring-2 focus:ring-blue-600/20 resize-none"
+                            value={candidate.description}
+                            onChange={(e) => {
+                              const newCandidates = [...votingContent.candidates];
+                              newCandidates[index].description = e.target.value;
+                              setVotingContent({ ...votingContent, candidates: newCandidates });
+                            }}
+                          />
+                        </div>
+
+                        <button
+                          onClick={() => {
+                            const newCandidates = votingContent.candidates.filter((c: any) => c.id !== candidate.id);
+                            setVotingContent({ ...votingContent, candidates: newCandidates });
+                          }}
+                          className="w-full py-4 text-xs font-black text-red-400 uppercase tracking-[0.2em] border-2 border-dashed border-red-100 rounded-2xl hover:bg-red-50 hover:border-red-200 transition-all flex items-center justify-center space-x-2"
+                        >
+                          <Trash2 size={14} />
+                          <span>Supprimer le Candidat</span>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Dashboard Analytique */}
+                <div className="bg-gray-900 p-12 rounded-[4rem] text-white overflow-hidden relative">
+                  <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-600/5 -skew-x-12 transform translate-x-1/2" />
+                  
+                  <div className="flex items-center justify-between mb-12 relative z-10">
+                    <div>
+                      <h3 className="text-3xl font-black tracking-tighter">Tendances Actuelles</h3>
+                      <p className="text-blue-400 font-medium">Visualisation temps réel des données</p>
+                    </div>
+                    <div className="flex gap-4">
+                      <div className="bg-white/10 p-4 rounded-3xl backdrop-blur-md">
+                        <span className="block text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Total Exprimé</span>
+                        <div className="text-2xl font-black tabular-nums">
+                          {votingContent.candidates.reduce((sum: number, c: any) => sum + (c.voteCount || 0), 0)}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="h-[400px] w-full relative z-10">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={votingContent.candidates.map((c: any) => ({ name: c.name, votes: c.voteCount || 0 }))}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
+                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#ffffff60', fontSize: 12}} dy={10} />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#ffffff60', fontSize: 12}} />
+                        <Tooltip 
+                          contentStyle={{backgroundColor: '#1f2937', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)'}}
+                          itemStyle={{color: '#60a5fa'}}
+                          cursor={{fill: '#ffffff05'}}
+                        />
+                        <Bar dataKey="votes" radius={[12, 12, 0, 0]} barSize={50}>
+                          {votingContent.candidates.map((entry: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#3b82f6' : '#10b981'} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
                 </div>
               </motion.div>
             ) : (

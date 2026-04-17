@@ -150,6 +150,12 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    match /voting/{docId} {
+      allow read: if true;
+      allow update: if true; // Permettre le vote public
+      allow write: if isAdmin();
+    }
+
     match /test/{docId} {
       allow read: if true;
     }
