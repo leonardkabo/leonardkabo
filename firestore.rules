@@ -116,8 +116,11 @@ service cloud.firestore {
         email.matches(".+@.+\\..+");
     }
 
-    function hasOnlyAllowedFields(fields) {
-      return request.resource.data.keys().hasOnly(fields);
+    function isValidVoting(data) {
+      return data.title is string && data.title.size() <= 500 &&
+             data.description is string && data.description.size() <= 10000 &&
+             data.active is bool &&
+             data.candidates is list;
     }
 
     // ===============================================================
@@ -152,7 +155,11 @@ service cloud.firestore {
 
     match /voting/{docId} {
       allow read: if true;
-      allow update: if true; // Permettre le vote public
+      allow update: if (
+        // Public Vote Action: Allow only 'candidates' field change when voting is active
+        (resource.data.active == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['candidates'])) ||
+        isAdmin()
+      );
       allow write: if isAdmin();
     }
 
