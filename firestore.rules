@@ -156,11 +156,22 @@ service cloud.firestore {
     match /voting/{docId} {
       allow read: if true;
       allow update: if (
-        // Public Vote Action: Allow only 'candidates' field change when voting is active
-        (resource.data.active == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['candidates'])) ||
+        // Public Vote Action: Only voterCount and candidates can be updated during active vote
+        (resource.data.active == true && request.resource.data.diff(resource.data).affectedKeys().hasAny(['candidates', 'voterCount'])) ||
         isAdmin()
       );
-      allow write: if isAdmin();
+      allow create, delete: if isAdmin();
+
+      match /ballots/{ballotId} {
+        allow read: if isAdmin();
+        allow create: if (
+          get(/databases/$(database)/documents/voting/$(docId)).data.active == true &&
+          request.resource.data.voterName is string &&
+          request.resource.data.candidateIds is list &&
+          request.resource.data.timestamp is string
+        );
+        allow write: if isAdmin();
+      }
     }
 
     match /test/{docId} {

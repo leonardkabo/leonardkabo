@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-route
 import React, { useEffect, Suspense, lazy } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import AnnouncementBanner from './components/AnnouncementBanner';
 import { motion, AnimatePresence } from 'motion/react';
 import SEO from './components/SEO';
 import LoadingScreen from './components/LoadingScreen';
@@ -65,6 +66,7 @@ export default function App() {
         <CountdownOverlay />
       </Suspense>
       <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-600">
+        <AnnouncementBanner />
         <Navbar />
         <main>
           <AnimatePresence mode="wait">

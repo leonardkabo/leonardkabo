@@ -20,7 +20,7 @@ export default function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
-  const { settings, voting } = useSiteData();
+  const { settings, votingSessions } = useSiteData();
 
   const navLinks = [
     { name: 'Accueil', href: '/' },
@@ -28,7 +28,7 @@ export default function Navbar() {
     { name: 'Réalisations', href: '/portfolio' },
     { name: 'Devis', href: '/devis' },
     { name: 'Contact', href: '/contact' },
-    ...(voting?.active ? [{ name: 'Vote', href: '/vote' }] : []),
+    ...(votingSessions.some(s => s.active) ? [{ name: 'Vote', href: '/vote' }] : []),
   ];
 
   useEffect(() => {

@@ -117,13 +117,25 @@ export interface Candidate {
   voteCount: number;
 }
 
-export interface VotingEvent {
+export interface VotingSession {
+  id: string;
   title: string;
   description: string;
   rules: string;
   active: boolean;
   maxVotes: number;
+  endDate: string;
   candidates: Candidate[];
+  voterCount: number;
+  createdAt: number;
+}
+
+export interface VotingBallot {
+  id: string;
+  sessionId: string;
+  voterName: string;
+  candidateIds: string[];
+  timestamp: number;
 }
 
 export function useSiteData() {
@@ -160,7 +172,7 @@ export function useSiteData() {
   const [services, setServices] = useState<any[]>(staticServices);
   const [portfolio, setPortfolio] = useState<any[]>(staticPortfolio);
   const [news, setNews] = useState<NewsItem[]>([]);
-  const [voting, setVoting] = useState<VotingEvent | null>(null);
+  const [votingSessions, setVotingSessions] = useState<VotingSession[]>([]);
   const [loaded, setLoaded] = useState({
     settings: false,
     hero: false,
@@ -243,15 +255,12 @@ export function useSiteData() {
       setLoaded(prev => ({ ...prev, news: true }));
     });
 
-    const unsubVoting = onSnapshot(doc(db, 'voting', 'active'), (docSnap) => {
-      if (docSnap.exists()) {
-        setVoting(docSnap.data() as VotingEvent);
-      } else {
-        setVoting(null);
-      }
+    const qVoting = query(collection(db, 'voting'), orderBy('createdAt', 'desc'));
+    const unsubVoting = onSnapshot(qVoting, (snapshot) => {
+      setVotingSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as VotingSession)));
       setLoaded(prev => ({ ...prev, voting: true }));
     }, (error) => {
-      handleFirestoreError(error, OperationType.GET, 'voting/active');
+      handleFirestoreError(error, OperationType.LIST, 'voting');
       setLoaded(prev => ({ ...prev, voting: true }));
     });
 
@@ -267,5 +276,5 @@ export function useSiteData() {
 
   const loading = !loaded.settings || !loaded.hero || !loaded.services || !loaded.portfolio || !loaded.news || !loaded.voting;
 
-  return { settings, hero, services, portfolio, news, voting, loading };
+  return { settings, hero, services, portfolio, news, votingSessions, loading };
 }

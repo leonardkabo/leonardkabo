@@ -36,6 +36,8 @@ export default function AdminDashboard() {
   const [services, setServices] = useState<any[]>([]);
   const [portfolio, setPortfolio] = useState<any[]>([]);
   const [news, setNews] = useState<any[]>([]);
+  const [votingSessions, setVotingSessions] = useState<any[]>([]);
+  const [ballots, setBallots] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'contacts' | 'content' | 'services' | 'portfolio' | 'news' | 'settings' | 'promos' | 'voting'>('appointments');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -186,9 +188,9 @@ export default function AdminDashboard() {
       if (docSnap.exists()) setHeroContent(docSnap.data());
     }, (error) => handleFirestoreError(error, OperationType.GET, 'sections/hero'));
 
-    const unsubVoting = onSnapshot(doc(db, 'voting', 'active'), (docSnap) => {
-      if (docSnap.exists()) setVotingContent(docSnap.data());
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'voting/active'));
+    const unsubVoting = onSnapshot(query(collection(db, 'voting'), orderBy('createdAt', 'desc')), (snapshot) => {
+      setVotingSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'voting'));
 
     getDoc(doc(db, 'settings', 'mapConfig')).then((docSnap) => {
       if (docSnap.exists()) {
@@ -226,13 +228,31 @@ export default function AdminDashboard() {
     setSaving(false);
   };
 
-  const handleSaveVoting = async () => {
+  const handleSaveVoting = async (session: any) => {
     setSaving(true);
     try {
-      await setDoc(doc(db, 'voting', 'active'), votingContent);
-      setShowSuccess('Système de vote mis à jour !');
-    } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'voting/active'); }
+      await setDoc(doc(db, 'voting', session.id), session);
+      setShowSuccess('Scrutin enregistré !');
+    } catch (e) { handleFirestoreError(e, OperationType.WRITE, `voting/${session.id}`); }
     setSaving(false);
+  };
+
+  const handleAddVotingSession = async () => {
+    try {
+      const newSession = {
+        title: "Nouveau Scrutin",
+        description: "Description du vote...",
+        rules: "1. Une voix par personne.\n2. Sélection libre.",
+        active: false,
+        maxVotes: 1,
+        endDate: new Date(Date.now() + 7 * 864 * 1000 * 100).toISOString(),
+        candidates: [],
+        voterCount: 0,
+        createdAt: Date.now()
+      };
+      await addDoc(collection(db, 'voting'), newSession);
+      setShowSuccess('Nouveau scrutin ajouté !');
+    } catch (e) { handleFirestoreError(e, OperationType.CREATE, 'voting'); }
   };
 
   const handleAddService = async () => {
@@ -1563,231 +1583,21 @@ export default function AdminDashboard() {
               >
                 <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-4xl font-black text-gray-900 tracking-tighter">Gestion du Vote</h2>
-                    <p className="text-gray-500 font-medium italic">Configurez vos scrutins officiels en temps réel.</p>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tighter">Campagnes de Vote</h2>
+                    <p className="text-gray-500 font-medium italic">Gérez vos scrutins et challenges en temps réel.</p>
                   </div>
-                  <div className="flex items-center space-x-4">
-                    <Button onClick={handleSaveVoting} isLoading={saving} icon={Save}>Enregistrer les Changements</Button>
-                  </div>
+                  <Button onClick={handleAddVotingSession} icon={Plus}>Nouveau Scrutin</Button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                  {/* Configuration Générale */}
-                  <div className="bg-white p-12 rounded-[3.5rem] shadow-sm border border-gray-100 space-y-8">
-                    <div className="flex items-center space-x-3 mb-4">
-                      <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                        <Settings size={24} />
-                      </div>
-                      <h3 className="text-2xl font-black text-gray-900">Configuration</h3>
-                    </div>
-
-                    <div className="flex items-center justify-between p-6 bg-gray-50 rounded-3xl mb-8">
-                      <div>
-                        <h4 className="font-bold text-gray-900">Status du Vote</h4>
-                        <p className="text-sm text-gray-400">Activer l'accès public à cette session</p>
-                      </div>
-                      <button
-                        onClick={() => setVotingContent({ ...votingContent, active: !votingContent.active })}
-                        className={cn(
-                          "w-16 h-8 rounded-full transition-colors relative",
-                          votingContent.active ? "bg-blue-600" : "bg-gray-200"
-                        )}
-                      >
-                        <div className={cn(
-                          "absolute top-1 w-6 h-6 bg-white rounded-full transition-all",
-                          votingContent.active ? "left-9" : "left-1"
-                        )} />
-                      </button>
-                    </div>
-
-                    <div className="space-y-6">
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Titre de la Session</label>
-                        <input
-                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
-                          value={votingContent.title}
-                          onChange={(e) => setVotingContent({ ...votingContent, title: e.target.value })}
-                          placeholder="ex: Meilleur Projet 2026"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Votes Max par Utilisateur</label>
-                        <input
-                          type="number"
-                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
-                          value={votingContent.maxVotes}
-                          onChange={(e) => setVotingContent({ ...votingContent, maxVotes: parseInt(e.target.value) })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Description</label>
-                        <textarea
-                          rows={3}
-                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all resize-none"
-                          value={votingContent.description}
-                          onChange={(e) => setVotingContent({ ...votingContent, description: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Règlement / Rules */}
-                  <div className="bg-white p-12 rounded-[3.5rem] shadow-sm border border-gray-100 flex flex-col">
-                    <div className="flex items-center space-x-3 mb-8">
-                      <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl">
-                        <Info size={24} />
-                      </div>
-                      <h3 className="text-2xl font-black text-gray-900">Règlement du Scrutin</h3>
-                    </div>
-                    <textarea
-                      className="flex-1 w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-6 px-6 outline-none transition-all resize-none font-medium min-h-[300px]"
-                      value={votingContent.rules}
-                      onChange={(e) => setVotingContent({ ...votingContent, rules: e.target.value })}
-                      placeholder="Décrivez ici les règles et conditions du vote..."
+                <div className="grid grid-cols-1 gap-6">
+                  {votingSessions.map(session => (
+                    <VotingSessionCard 
+                      key={session.id} 
+                      session={session} 
+                      onSave={handleSaveVoting}
+                      onDelete={() => deleteItem('voting', session.id)}
                     />
-                  </div>
-                </div>
-
-                {/* Gestion des Candidats */}
-                <div className="bg-white p-12 rounded-[4rem] shadow-sm border border-gray-100">
-                  <div className="flex justify-between items-center mb-12">
-                    <div className="flex items-center space-x-3">
-                      <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl">
-                        <Users size={24} />
-                      </div>
-                      <h3 className="text-3xl font-black text-gray-900 tracking-tighter">Candidats</h3>
-                    </div>
-                    <Button
-                      size="sm"
-                      icon={Plus}
-                      onClick={() => setVotingContent({
-                        ...votingContent,
-                        candidates: [
-                          ...votingContent.candidates,
-                          { id: Math.random().toString(36).substring(2), name: `Candidat ${votingContent.candidates.length + 1}`, description: "Description...", imageUrl: `https://picsum.photos/seed/${Math.random()}/800/1000`, voteCount: 0 }
-                        ]
-                      })}
-                    >
-                      Ajouter un Candidat
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {votingContent.candidates.map((candidate: any, index: number) => (
-                      <div key={candidate.id} className="bg-gray-50 p-8 rounded-[3rem] space-y-6 relative group overflow-hidden border-2 border-transparent hover:border-blue-600/20 transition-all">
-                        <div className="flex items-start justify-between">
-                          <div className="relative w-24 h-24">
-                            <img 
-                              src={candidate.imageUrl} 
-                              className="w-24 h-24 rounded-2xl object-cover shadow-lg"
-                              referrerPolicy="no-referrer"
-                            />
-                            <div className="absolute -top-2 -right-2">
-                              <input
-                                type="file"
-                                id={`candidate-img-${candidate.id}`}
-                                className="hidden"
-                                onChange={(e) => {
-                                  if (e.target.files?.[0]) {
-                                    handleFileUpload(e.target.files[0], 'voting', candidate.id, (url) => {
-                                      const newCandidates = [...votingContent.candidates];
-                                      newCandidates[index].imageUrl = url;
-                                      setVotingContent({ ...votingContent, candidates: newCandidates });
-                                    });
-                                  }
-                                }}
-                              />
-                              <label
-                                htmlFor={`candidate-img-${candidate.id}`}
-                                className="w-8 h-8 bg-white text-blue-600 rounded-xl shadow-lg flex items-center justify-center cursor-pointer hover:scale-110 transition-transform"
-                              >
-                                {uploading === candidate.id ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
-                              </label>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <span className="text-xs font-black text-blue-400 uppercase tracking-widest">Vote Count</span>
-                            <div className="text-3xl font-black text-blue-600 tabular-nums">
-                              {candidate.voteCount || 0}
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="space-y-4">
-                          <input
-                            className="w-full bg-white border-none rounded-xl py-3 px-4 font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-600/20"
-                            value={candidate.name}
-                            onChange={(e) => {
-                              const newCandidates = [...votingContent.candidates];
-                              newCandidates[index].name = e.target.value;
-                              setVotingContent({ ...votingContent, candidates: newCandidates });
-                            }}
-                          />
-                          <textarea
-                            rows={2}
-                            className="w-full bg-white border-none rounded-xl py-3 px-4 text-sm font-medium text-gray-500 outline-none focus:ring-2 focus:ring-blue-600/20 resize-none"
-                            value={candidate.description}
-                            onChange={(e) => {
-                              const newCandidates = [...votingContent.candidates];
-                              newCandidates[index].description = e.target.value;
-                              setVotingContent({ ...votingContent, candidates: newCandidates });
-                            }}
-                          />
-                        </div>
-
-                        <button
-                          onClick={() => {
-                            const newCandidates = votingContent.candidates.filter((c: any) => c.id !== candidate.id);
-                            setVotingContent({ ...votingContent, candidates: newCandidates });
-                          }}
-                          className="w-full py-4 text-xs font-black text-red-400 uppercase tracking-[0.2em] border-2 border-dashed border-red-100 rounded-2xl hover:bg-red-50 hover:border-red-200 transition-all flex items-center justify-center space-x-2"
-                        >
-                          <Trash2 size={14} />
-                          <span>Supprimer le Candidat</span>
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Dashboard Analytique */}
-                <div className="bg-gray-900 p-12 rounded-[4rem] text-white overflow-hidden relative">
-                  <div className="absolute top-0 right-0 w-1/2 h-full bg-blue-600/5 -skew-x-12 transform translate-x-1/2" />
-                  
-                  <div className="flex items-center justify-between mb-12 relative z-10">
-                    <div>
-                      <h3 className="text-3xl font-black tracking-tighter">Tendances Actuelles</h3>
-                      <p className="text-blue-400 font-medium">Visualisation temps réel des données</p>
-                    </div>
-                    <div className="flex gap-4">
-                      <div className="bg-white/10 p-4 rounded-3xl backdrop-blur-md">
-                        <span className="block text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Total Exprimé</span>
-                        <div className="text-2xl font-black tabular-nums">
-                          {votingContent.candidates.reduce((sum: number, c: any) => sum + (c.voteCount || 0), 0)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="h-[400px] w-full relative z-10">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart data={votingContent.candidates.map((c: any) => ({ name: c.name, votes: c.voteCount || 0 }))}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff10" />
-                        <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fill: '#ffffff60', fontSize: 12}} dy={10} />
-                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#ffffff60', fontSize: 12}} />
-                        <Tooltip 
-                          contentStyle={{backgroundColor: '#1f2937', borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.3)'}}
-                          itemStyle={{color: '#60a5fa'}}
-                          cursor={{fill: '#ffffff05'}}
-                        />
-                        <Bar dataKey="votes" radius={[12, 12, 0, 0]} barSize={50}>
-                          {votingContent.candidates.map((entry: any, index: number) => (
-                            <Cell key={`cell-${index}`} fill={index % 2 === 0 ? '#3b82f6' : '#10b981'} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
+                  ))}
                 </div>
               </motion.div>
             ) : (
@@ -2446,6 +2256,251 @@ export default function AdminDashboard() {
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function VotingSessionCard({ session: initialSession, onSave, onDelete }: { session: any, onSave: (s: any) => void, onDelete: () => void, key?: any }) {
+  const [session, setSession] = useState(initialSession);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [activeSubTab, setActiveSubTab] = useState<'config' | 'candidates' | 'stats' | 'ballots'>('config');
+  const [ballots, setBallots] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (activeSubTab === 'ballots' || isExpanded) {
+      const unsub = onSnapshot(query(collection(db, 'voting', session.id, 'ballots'), orderBy('timestamp', 'desc')), (snapshot) => {
+        setBallots(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      });
+      return unsub;
+    }
+  }, [activeSubTab, isExpanded, session.id]);
+
+  const handleCancelBallot = async (ballot: any) => {
+    try {
+      // 1. Delete ballot doc
+      await deleteDoc(doc(db, 'voting', session.id, 'ballots', ballot.id));
+      
+      // 2. Decrement votes for each candidate in the session doc
+      const updatedCandidates = session.candidates.map((c: any) => {
+        if (ballot.candidateIds.includes(c.id)) {
+          return { ...c, voteCount: Math.max(0, (c.voteCount || 0) - 1) };
+        }
+        return c;
+      });
+
+      const updatedSession = { 
+        ...session, 
+        candidates: updatedCandidates,
+        voterCount: Math.max(0, (session.voterCount || 0) - 1)
+      };
+      
+      setSession(updatedSession);
+      await setDoc(doc(db, 'voting', session.id), updatedSession);
+    } catch (e) {
+      console.error("Error cancelling ballot:", e);
+    }
+  };
+
+  const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899'];
+  const chartData = session.candidates.map((c: any) => ({ name: c.name, votes: c.voteCount || 0 }));
+  const totalVotes = session.candidates.reduce((sum: number, c: any) => sum + (c.voteCount || 0), 0);
+
+  return (
+    <div className="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden transition-all">
+      <div className="p-8 flex items-center justify-between">
+        <div className="flex items-center space-x-6">
+          <div className={cn(
+            "w-16 h-16 rounded-2xl flex items-center justify-center transition-colors",
+            session.active ? "bg-emerald-50 text-emerald-600" : "bg-gray-100 text-gray-400"
+          )}>
+            <Vote size={32} />
+          </div>
+          <div>
+            <h3 className="text-2xl font-black text-gray-900">{session.title}</h3>
+            <p className="text-gray-500 font-medium">Fin : {new Date(session.endDate).toLocaleDateString()} | {session.voterCount || 0} votants</p>
+          </div>
+        </div>
+        <div className="flex items-center space-x-4">
+          <Button variant={isExpanded ? "primary" : "outline"} onClick={() => setIsExpanded(!isExpanded)} icon={isExpanded ? ChevronLeft : Edit2}>
+            {isExpanded ? "Fermer" : "Gérer"}
+          </Button>
+          <Button variant="danger" size="icon" icon={Trash2} onClick={onDelete} />
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="border-t border-gray-50 bg-gray-50/30 p-8 pt-0"
+          >
+            {/* Sub Tabs */}
+            <div className="flex border-b border-gray-100 mb-8 pt-4">
+              <button onClick={() => setActiveSubTab('config')} className={cn("px-6 py-4 font-bold text-sm border-b-2 transition-all", activeSubTab === 'config' ? "border-blue-600 text-blue-600" : "border-transparent text-gray-400")}>Configuration</button>
+              <button onClick={() => setActiveSubTab('candidates')} className={cn("px-6 py-4 font-bold text-sm border-b-2 transition-all", activeSubTab === 'candidates' ? "border-blue-600 text-blue-600" : "border-transparent text-gray-400")}>Candidats ({session.candidates.length})</button>
+              <button onClick={() => setActiveSubTab('stats')} className={cn("px-6 py-4 font-bold text-sm border-b-2 transition-all", activeSubTab === 'stats' ? "border-blue-600 text-blue-600" : "border-transparent text-gray-400")}>Statistiques</button>
+              <button onClick={() => setActiveSubTab('ballots')} className={cn("px-6 py-4 font-bold text-sm border-b-2 transition-all", activeSubTab === 'ballots' ? "border-blue-600 text-blue-600" : "border-transparent text-gray-400")}>Bulletins ({ballots.length})</button>
+            </div>
+
+            {activeSubTab === 'config' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 bg-white p-8 rounded-[2.5rem] shadow-sm">
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-2xl">
+                    <span className="font-bold">Activer le scrutin</span>
+                    <button onClick={() => setSession({...session, active: !session.active})} className={cn("w-12 h-6 rounded-full relative transition-colors", session.active ? "bg-blue-600" : "bg-gray-200")}>
+                      <div className={cn("absolute top-1 w-4 h-4 bg-white rounded-full transition-all", session.active ? "left-7" : "left-1")} />
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-gray-400">Titre</label>
+                    <input className="w-full bg-gray-50 rounded-xl p-4 font-bold" value={session.title} onChange={e => setSession({...session, title: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-gray-400">Date de fin</label>
+                    <input type="datetime-local" className="w-full bg-gray-50 rounded-xl p-4 font-bold" value={session.endDate?.slice(0, 16) || ""} onChange={e => setSession({...session, endDate: e.target.value})} />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <label className="text-xs font-bold uppercase text-gray-400">Max Choix</label>
+                      <input type="number" className="w-full bg-gray-50 rounded-xl p-4 font-bold" value={session.maxVotes} onChange={e => setSession({...session, maxVotes: parseInt(e.target.value)})} />
+                    </div>
+                  </div>
+                </div>
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-gray-400">Description</label>
+                    <textarea className="w-full bg-gray-50 rounded-xl p-4 font-bold min-h-[100px]" value={session.description} onChange={e => setSession({...session, description: e.target.value})} />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold uppercase text-gray-400">Règlement</label>
+                    <textarea className="w-full bg-gray-50 rounded-xl p-4 font-bold min-h-[150px]" value={session.rules} onChange={e => setSession({...session, rules: e.target.value})} />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === 'candidates' && (
+              <div className="space-y-6">
+                 <div className="flex justify-end">
+                    <Button size="sm" icon={Plus} onClick={() => setSession({
+                      ...session,
+                      candidates: [...session.candidates, { id: Math.random().toString(36).substring(2), name: "Nouveau", description: "...", imageUrl: "https://picsum.photos/seed/candidate/400/500", voteCount: 0 }]
+                    })}>Ajouter</Button>
+                 </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                    {session.candidates.map((cand: any, idx: number) => (
+                      <div key={cand.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
+                        <img src={cand.imageUrl} className="w-20 h-20 rounded-2xl object-cover mb-4" />
+                        <input className="text-center font-bold mb-2 bg-gray-50 rounded-lg p-1" value={cand.name} onChange={e => {
+                          const newCands = [...session.candidates];
+                          newCands[idx].name = e.target.value;
+                          setSession({...session, candidates: newCands});
+                        }} />
+                        <span className="text-blue-600 font-black mb-4">{cand.voteCount || 0} voix</span>
+                        <Button variant="danger" size="icon" icon={Trash2} onClick={() => {
+                          const newCands = session.candidates.filter((c: any) => c.id !== cand.id);
+                          setSession({...session, candidates: newCands});
+                        }} />
+                      </div>
+                    ))}
+                 </div>
+              </div>
+            )}
+
+            {activeSubTab === 'stats' && (
+              <div className="bg-gray-900 p-8 rounded-[3rem] text-white">
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
+                    <div className="h-[250px] lg:col-span-2">
+                       <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={chartData}>
+                             <XAxis dataKey="name" tick={{fill: '#fff', fontSize: 10}} axisLine={false} />
+                             <YAxis tick={{fill: '#fff', fontSize: 10}} axisLine={false} />
+                             <Tooltip contentStyle={{backgroundColor: '#1f2937', border: 'none'}} />
+                             <Bar dataKey="votes" radius={[8, 8, 0, 0]} barSize={40}>
+                                {chartData.map((e: any, i: number) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                             </Bar>
+                          </BarChart>
+                       </ResponsiveContainer>
+                    </div>
+                    <div className="space-y-4">
+                       <div className="bg-white/5 p-6 rounded-3xl">
+                          <span className="text-[10px] uppercase text-blue-400 font-bold">Total Votants</span>
+                          <p className="text-4xl font-black">{session.voterCount || 0}</p>
+                       </div>
+                       <div className="bg-white/5 p-6 rounded-3xl">
+                          <span className="text-[10px] uppercase text-emerald-400 font-bold">Total Voix</span>
+                          <p className="text-4xl font-black">{totalVotes}</p>
+                       </div>
+                    </div>
+                 </div>
+              </div>
+            )}
+
+            {activeSubTab === 'ballots' && (
+              <div className="bg-white rounded-[2.5rem] overflow-hidden border border-gray-100">
+                <table className="w-full text-left">
+                  <thead className="bg-gray-50 border-b border-gray-100">
+                    <tr>
+                      <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Votant</th>
+                      <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Choix</th>
+                      <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Date</th>
+                      <th className="px-8 py-6 text-xs font-black uppercase text-gray-400 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {ballots.map(ballot => (
+                      <tr key={ballot.id} className="hover:bg-gray-50/50">
+                        <td className="px-8 py-6">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center font-bold text-xs">
+                              {ballot.voterName ? ballot.voterName[0] : "?"}
+                            </div>
+                            <span className="font-bold text-gray-900">{ballot.voterName}</span>
+                          </div>
+                        </td>
+                        <td className="px-8 py-6">
+                           <div className="flex flex-wrap gap-2">
+                              {ballot.candidateIds?.map((cid: string) => (
+                                <span key={cid} className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
+                                   {session.candidates.find((c: any) => c.id === cid)?.name || cid}
+                                </span>
+                              ))}
+                           </div>
+                        </td>
+                        <td className="px-8 py-6 text-sm text-gray-500">{new Date(ballot.timestamp).toLocaleString()}</td>
+                        <td className="px-8 py-6 text-right">
+                          <Button 
+                            variant="danger" 
+                            size="sm" 
+                            onClick={() => handleCancelBallot(ballot)}
+                            icon={Trash2}
+                          >
+                            Annuler
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                    {ballots.length === 0 && (
+                      <tr>
+                        <td colSpan={4} className="px-8 py-12 text-center text-gray-400 italic">Aucun bulletin enregistré.</td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {isExpanded && (
+              <div className="mt-8 flex justify-end space-x-4">
+                 <Button variant="outline" onClick={() => setIsExpanded(false)}>Annuler</Button>
+                 <Button onClick={() => onSave(session)} icon={Save}>Enregistrer les modifications</Button>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
