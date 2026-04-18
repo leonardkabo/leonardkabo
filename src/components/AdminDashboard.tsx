@@ -1759,6 +1759,7 @@ export default function AdminDashboard() {
                       session={session} 
                       onSave={handleSaveVoting}
                       onDelete={() => deleteItem('voting', session.id)}
+                      onFileUpload={handleFileUpload}
                     />
                   ))}
                 </div>
@@ -2423,11 +2424,12 @@ export default function AdminDashboard() {
   );
 }
 
-function VotingSessionCard({ session: initialSession, onSave, onDelete }: { session: any, onSave: (s: any) => void, onDelete: () => void, key?: any }) {
+function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUpload }: { session: any, onSave: (s: any) => void, onDelete: () => void, onFileUpload: (file: File, path: string, id: string, cb: (url: string) => void) => void, key?: any }) {
   const [session, setSession] = useState(initialSession);
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'config' | 'candidates' | 'stats' | 'ballots'>('config');
   const [ballots, setBallots] = useState<any[]>([]);
+  const [uploadingId, setUploadingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (activeSubTab === 'ballots' || isExpanded) {
@@ -2549,23 +2551,80 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete }: { sess
                  <div className="flex justify-end">
                     <Button size="sm" icon={Plus} onClick={() => setSession({
                       ...session,
-                      candidates: [...session.candidates, { id: Math.random().toString(36).substring(2), name: "Nouveau", description: "...", imageUrl: "https://picsum.photos/seed/candidate/400/500", voteCount: 0 }]
-                    })}>Ajouter</Button>
+                      candidates: [...session.candidates, { id: Math.random().toString(36).substring(2), name: "Nouveau", description: "", imageUrl: "https://picsum.photos/seed/candidate/400/500", voteCount: 0 }]
+                    })}>Ajouter un Candidat</Button>
                  </div>
-                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {session.candidates.map((cand: any, idx: number) => (
-                      <div key={cand.id} className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-col items-center text-center">
-                        <img src={cand.imageUrl} className="w-20 h-20 rounded-2xl object-cover mb-4" />
-                        <input className="text-center font-bold mb-2 bg-gray-50 rounded-lg p-1" value={cand.name} onChange={e => {
-                          const newCands = [...session.candidates];
-                          newCands[idx].name = e.target.value;
-                          setSession({...session, candidates: newCands});
-                        }} />
-                        <span className="text-blue-600 font-black mb-4">{cand.voteCount || 0} voix</span>
-                        <Button variant="danger" size="icon" icon={Trash2} onClick={() => {
-                          const newCands = session.candidates.filter((c: any) => c.id !== cand.id);
-                          setSession({...session, candidates: newCands});
-                        }} />
+                      <div key={cand.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center">
+                        <div className="relative group mb-6">
+                          <img src={cand.imageUrl} className="w-32 h-32 rounded-3xl object-cover shadow-lg" referrerPolicy="no-referrer" />
+                          <button 
+                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl flex items-center justify-center text-white"
+                            onClick={() => document.getElementById(`file-cand-${cand.id}`)?.click()}
+                          >
+                            <ImageIcon size={24} />
+                          </button>
+                          {uploadingId === cand.id && (
+                            <div className="absolute inset-0 bg-white/80 rounded-3xl flex items-center justify-center">
+                              <Loader2 size={24} className="animate-spin text-blue-600" />
+                            </div>
+                          )}
+                          <input 
+                            id={`file-cand-${cand.id}`}
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                setUploadingId(cand.id);
+                                onFileUpload(file, 'candidates', cand.id, (url) => {
+                                  const newCands = [...session.candidates];
+                                  newCands[idx].imageUrl = url;
+                                  setSession({...session, candidates: newCands});
+                                  setUploadingId(null);
+                                });
+                              }
+                            }}
+                          />
+                        </div>
+                        <div className="w-full space-y-4">
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Nom du Candidat</label>
+                            <input 
+                              className="w-full bg-gray-50 rounded-2xl p-4 font-bold border-2 border-transparent focus:border-blue-600/10 focus:bg-white transition-all" 
+                              value={cand.name} 
+                              onChange={e => {
+                                const newCands = [...session.candidates];
+                                newCands[idx].name = e.target.value;
+                                setSession({...session, candidates: newCands});
+                              }} 
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Description (Optionnel)</label>
+                            <textarea 
+                              className="w-full bg-gray-50 rounded-2xl p-4 font-medium text-sm min-h-[80px] border-2 border-transparent focus:border-blue-600/10 focus:bg-white transition-all" 
+                              placeholder="Parcours, ambitions..."
+                              value={cand.description || ""} 
+                              onChange={e => {
+                                const newCands = [...session.candidates];
+                                newCands[idx].description = e.target.value;
+                                setSession({...session, candidates: newCands});
+                              }} 
+                            />
+                          </div>
+                        </div>
+                        <div className="mt-6 flex items-center justify-between w-full">
+                          <div className="bg-blue-50 text-blue-600 px-4 py-2 rounded-xl text-xs font-black">
+                            {cand.voteCount || 0} Voix
+                          </div>
+                          <Button variant="danger" size="icon" icon={Trash2} onClick={() => {
+                            const newCands = session.candidates.filter((c: any) => c.id !== cand.id);
+                            setSession({...session, candidates: newCands});
+                          }} />
+                        </div>
                       </div>
                     ))}
                  </div>
