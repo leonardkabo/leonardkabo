@@ -227,6 +227,24 @@ export default function VotingPage() {
                       </ResponsiveContainer>
                     </div>
 
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                      {sortedCandidates.slice(0, 3).map((cand, i) => (
+                        <div key={cand.id} className="bg-white/50 p-6 rounded-[2.5rem] flex items-center space-x-4 border border-blue-50">
+                          <div className="relative">
+                            <img src={cand.imageUrl || `https://picsum.photos/seed/${cand.id}/80/80`} className="w-16 h-16 rounded-2xl object-cover shadow-lg" referrerPolicy="no-referrer" />
+                            <div className={cn(
+                              "absolute -top-2 -right-2 w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black text-white",
+                              i === 0 ? "bg-amber-500" : i === 1 ? "bg-gray-400" : "bg-orange-500"
+                            )}>{i + 1}</div>
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-gray-900 leading-tight">{cand.name}</h4>
+                            <p className="text-xs text-blue-600 font-black uppercase tracking-widest">{cand.voteCount || 0} Votes</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                       <div className="bg-blue-50/50 p-8 rounded-[2.5rem] flex flex-col items-center justify-center">
                         <Users size={24} className="text-blue-600 mb-3" />
@@ -308,11 +326,19 @@ export default function VotingPage() {
                         )}>
                           {idx + 1}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-bold text-gray-900 truncate">{candidate.name}</h4>
-                          <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
-                            {candidate.voteCount || 0} Voix
-                          </p>
+                        <div className="flex-1 min-w-0 flex items-center space-x-4">
+                          <img 
+                            src={candidate.imageUrl || `https://picsum.photos/seed/${candidate.id}/100/100`} 
+                            className="w-12 h-12 rounded-xl object-cover border-2 border-gray-50 group-hover:scale-110 transition-transform" 
+                            alt={candidate.name}
+                            referrerPolicy="no-referrer"
+                          />
+                          <div className="min-w-0">
+                            <h4 className="font-bold text-gray-900 truncate">{candidate.name}</h4>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">
+                              {candidate.voteCount || 0} Voix
+                            </p>
+                          </div>
                         </div>
                         <div className="h-2 w-20 bg-gray-100 rounded-full overflow-hidden">
                           <motion.div 

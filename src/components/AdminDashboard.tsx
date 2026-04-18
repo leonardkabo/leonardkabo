@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, Eye, Upload, Loader2, Vote, Info, Activity } from 'lucide-react';
+import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, Eye, Upload, Loader2, Vote, Info, Activity, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db, storage } from '../firebase';
@@ -27,8 +27,24 @@ enum OperationType {
 
 const ITEMS_PER_PAGE = 5;
 
+const PERMISSIONS_LIST = [
+  { id: 'appointments', label: 'Rendez-vous', icon: Calendar },
+  { id: 'quotes', label: 'Devis', icon: FileText },
+  { id: 'contacts', label: 'Messages', icon: MessageSquare },
+  { id: 'services', label: 'Services', icon: Briefcase },
+  { id: 'portfolio', label: 'Portfolio', icon: Layout },
+  { id: 'news', label: 'Actualités', icon: Globe },
+  { id: 'voting', label: 'Votes', icon: Vote },
+  { id: 'audience', label: 'Audience', icon: TrendingUp },
+  { id: 'settings', label: 'Paramètres', icon: Settings },
+];
+
 export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
+  const [adminData, setAdminData] = useState<any>(null);
+  const [teamUsers, setTeamUsers] = useState<any[]>([]);
+  const [newUser, setNewUser] = useState<any>({ email: '', displayName: '', role: 'moderator', permissions: [] });
+  const [isAddingUser, setIsAddingUser] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
@@ -39,7 +55,7 @@ export default function AdminDashboard() {
   const [ballots, setBallots] = useState<any[]>([]);
   const [realtimeSessions, setRealtimeSessions] = useState<any[]>([]);
   const [visitHistory, setVisitHistory] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'contacts' | 'content' | 'services' | 'portfolio' | 'news' | 'settings' | 'promos' | 'voting' | 'audience'>('appointments');
+  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'contacts' | 'content' | 'services' | 'portfolio' | 'news' | 'settings' | 'promos' | 'voting' | 'audience' | 'team'>('appointments');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -112,6 +128,16 @@ export default function AdminDashboard() {
     console.error('Firestore Error: ', JSON.stringify(errInfo));
   };
 
+  const hasPermission = (tab: string) => {
+    if (!adminData) return false;
+    if (adminData.isAdmin || adminData.role === 'superadmin' || adminData.permissions?.includes('all')) return true;
+    
+    // Content is a meta-tab for hero, etc.
+    if (tab === 'content') return adminData.permissions?.includes('settings') || adminData.permissions?.includes('all');
+    
+    return adminData.permissions?.includes(tab);
+  };
+
   const handleFileUpload = async (file: File, path: string, fieldId: string, callback: (url: string) => void) => {
     if (!file) return;
     setUploading(fieldId);
@@ -161,13 +187,41 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      if (!user || user.email !== 'leonardkabo32@gmail.com') {
-        console.log('User not authorized or not logged in:', user?.email);
+    const unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+      if (!user) {
         navigate('/admin/login');
-      } else {
-        console.log('User logged in as admin:', user.email, 'Verified:', user.emailVerified);
-        setUser(user);
+        return;
+      }
+
+      try {
+        const userDoc = await getDoc(doc(db, 'users', user.email!));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          setUser(user);
+          setAdminData(userData);
+          console.log('User logged in with profile:', userData);
+        } else if (user.email === 'leonardkabo32@gmail.com') {
+          // Auto-promote owner if record missing
+          const superAdminData = {
+            email: user.email,
+            displayName: user.displayName || 'Léonard KABO',
+            role: 'superadmin',
+            isAdmin: true,
+            permissions: ['all'],
+            createdAt: Date.now()
+          };
+          await setDoc(doc(db, 'users', user.email!), superAdminData);
+          setUser(user);
+          setAdminData(superAdminData);
+          console.log('Owner auto-promoted to superadmin');
+        } else {
+          console.warn('Access denied: User not in the team list');
+          await signOut(auth);
+          navigate('/admin/login');
+        }
+      } catch (e) {
+        console.error('Error fetching user data:', e);
+        navigate('/admin/login');
       }
     });
 
@@ -202,6 +256,10 @@ export default function AdminDashboard() {
     const unsubNews = onSnapshot(query(collection(db, 'news'), orderBy('createdAt', 'desc')), (snapshot) => {
       setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'news'));
+
+    const unsubUsers = onSnapshot(query(collection(db, 'users'), orderBy('createdAt', 'desc')), (snapshot) => {
+      setTeamUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
 
     // Fetch single docs
     onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
@@ -238,6 +296,7 @@ export default function AdminDashboard() {
       unsubServices();
       unsubPortfolio();
       unsubNews();
+      unsubUsers();
       unsubVoting();
       unsubRealtime();
       unsubHistory();
@@ -250,6 +309,47 @@ export default function AdminDashboard() {
       await setDoc(doc(db, 'settings', 'site'), siteSettings);
       setShowSuccess('Paramètres du site enregistrés !');
     } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'settings/site'); }
+    setSaving(false);
+  };
+
+  const handleAddTeamUser = async () => {
+    if (!newUser.email || !newUser.displayName) {
+      alert("Veuillez remplir le nom et l'email.");
+      return;
+    }
+    setSaving(true);
+    try {
+      await setDoc(doc(db, 'users', newUser.email), {
+        ...newUser,
+        createdAt: Date.now()
+      });
+      setShowSuccess('Utilisateur ajouté à l\'équipe !');
+      setNewUser({ email: '', displayName: '', role: 'moderator', permissions: [] });
+      setIsAddingUser(false);
+    } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'users'); }
+    setSaving(false);
+  };
+
+  const handleUpdateTeamUser = async (email: string, data: any) => {
+    setSaving(true);
+    try {
+      await updateDoc(doc(db, 'users', email), data);
+      setShowSuccess('Permissions mises à jour !');
+    } catch (e) { handleFirestoreError(e, OperationType.UPDATE, 'users'); }
+    setSaving(false);
+  };
+
+  const handleDeleteTeamUser = async (email: string) => {
+    if (email === 'leonardkabo32@gmail.com') {
+      alert("Impossible de supprimer le propriétaire.");
+      return;
+    }
+    if (!confirm("Supprimer cet utilisateur ?")) return;
+    setSaving(true);
+    try {
+      await deleteDoc(doc(db, 'users', email));
+      setShowSuccess('Utilisateur supprimé.');
+    } catch (e) { handleFirestoreError(e, OperationType.DELETE, 'users'); }
     setSaving(false);
   };
 
@@ -802,83 +902,114 @@ export default function AdminDashboard() {
         </div>
 
         <div className="flex flex-wrap gap-4 mb-10">
-          <Button
-            variant={activeTab === 'appointments' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('appointments')}
-            icon={Calendar}
-          >
-            Rendez-vous ({appointments.length})
-          </Button>
-          <Button
-            variant={activeTab === 'quotes' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('quotes')}
-            icon={FileText}
-          >
-            Devis ({quotes.length})
-          </Button>
-          <Button
-            variant={activeTab === 'contacts' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('contacts')}
-            icon={MessageSquare}
-          >
-            Messages ({contacts.length})
-          </Button>
-          <Button
-            variant={activeTab === 'content' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('content')}
-            icon={Layout}
-          >
-            Contenu
-          </Button>
-          <Button
-            variant={activeTab === 'services' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('services')}
-            icon={Briefcase}
-          >
-            Services ({services.length})
-          </Button>
-          <Button
-            variant={activeTab === 'promos' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('promos')}
-            icon={TrendingUp}
-          >
-            Promos
-          </Button>
-          <Button
-            variant={activeTab === 'portfolio' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('portfolio')}
-            icon={ImageIcon}
-          >
-            Portfolio ({portfolio.length})
-          </Button>
-          <Button
-            variant={activeTab === 'news' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('news')}
-            icon={FileText}
-          >
-            Actualités ({news.length})
-          </Button>
-          <Button
-            variant={activeTab === 'voting' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('voting')}
-            icon={Vote}
-          >
-            Système de Vote
-          </Button>
-          <Button
-            variant={activeTab === 'audience' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('audience')}
-            icon={Users}
-          >
-            Audience (Live: {onlineCount})
-          </Button>
-          <Button
-            variant={activeTab === 'settings' ? 'primary' : 'outline'}
-            onClick={() => setActiveTab('settings')}
-            icon={Settings}
-          >
-            Paramètres
-          </Button>
+          {hasPermission('appointments') && (
+            <Button
+              variant={activeTab === 'appointments' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('appointments')}
+              icon={Calendar}
+            >
+              Rendez-vous ({appointments.length})
+            </Button>
+          )}
+          {hasPermission('quotes') && (
+            <Button
+              variant={activeTab === 'quotes' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('quotes')}
+              icon={FileText}
+            >
+              Devis ({quotes.length})
+            </Button>
+          )}
+          {hasPermission('contacts') && (
+            <Button
+              variant={activeTab === 'contacts' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('contacts')}
+              icon={MessageSquare}
+            >
+              Messages ({contacts.length})
+            </Button>
+          )}
+          {hasPermission('content') && (
+            <Button
+              variant={activeTab === 'content' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('content')}
+              icon={Layout}
+            >
+              Contenu
+            </Button>
+          )}
+          {hasPermission('services') && (
+            <Button
+              variant={activeTab === 'services' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('services')}
+              icon={Briefcase}
+            >
+              Services ({services.length})
+            </Button>
+          )}
+          {hasPermission('promos') && (
+            <Button
+              variant={activeTab === 'promos' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('promos')}
+              icon={TrendingUp}
+            >
+              Promos
+            </Button>
+          )}
+          {hasPermission('portfolio') && (
+            <Button
+              variant={activeTab === 'portfolio' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('portfolio')}
+              icon={ImageIcon}
+            >
+              Portfolio ({portfolio.length})
+            </Button>
+          )}
+          {hasPermission('news') && (
+            <Button
+              variant={activeTab === 'news' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('news')}
+              icon={FileText}
+            >
+              Actualités ({news.length})
+            </Button>
+          )}
+          {hasPermission('voting') && (
+            <Button
+              variant={activeTab === 'voting' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('voting')}
+              icon={Vote}
+            >
+              Système de Vote
+            </Button>
+          )}
+          {hasPermission('audience') && (
+            <Button
+              variant={activeTab === 'audience' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('audience')}
+              icon={Users}
+            >
+              Audience (Live: {onlineCount})
+            </Button>
+          )}
+          {hasPermission('settings') && (
+            <Button
+              variant={activeTab === 'settings' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('settings')}
+              icon={Settings}
+            >
+              Paramètres
+            </Button>
+          )}
+          {(adminData?.isAdmin || adminData?.role === 'superadmin') && (
+            <Button
+              variant={activeTab === 'team' ? 'primary' : 'outline'}
+              onClick={() => setActiveTab('team')}
+              icon={Shield}
+            >
+              Gestion de l'Équipe
+            </Button>
+          )}
         </div>
 
         {/* Search Bar */}
@@ -1787,7 +1918,7 @@ export default function AdminDashboard() {
                   ))}
                 </div>
               </motion.div>
-            ) : (
+            ) : activeTab === 'settings' ? (
               <motion.div
                 key="settings-tab"
                 initial={{ opacity: 0, x: -20 }}
@@ -1941,7 +2072,132 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               </motion.div>
-            )}
+            ) : activeTab === 'team' ? (
+              <motion.div
+                key="team-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-8"
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-4xl font-black text-gray-900 tracking-tighter">Gestion de l'Équipe</h2>
+                    <p className="text-gray-500 font-medium italic">Accréditez vos collaborateurs et gérez leurs permissions.</p>
+                  </div>
+                  <Button onClick={() => setIsAddingUser(true)} icon={Plus} size="sm">Ajouter un Membre</Button>
+                </div>
+
+                {isAddingUser && (
+                  <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-blue-100 space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
+                        <input
+                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+                          value={newUser.displayName}
+                          onChange={(e) => setNewUser({...newUser, displayName: e.target.value})}
+                          placeholder="ex: Jean Dupont"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Adresse Email (Google)</label>
+                        <input
+                          type="email"
+                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+                          value={newUser.email}
+                          onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                          placeholder="jean.dupont@gmail.com"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Permissions d'accès</label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {PERMISSIONS_LIST.map(p => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => {
+                              const perms = newUser.permissions?.includes(p.id)
+                                ? newUser.permissions.filter((id: string) => id !== p.id)
+                                : [...(newUser.permissions || []), p.id];
+                              setNewUser({...newUser, permissions: perms});
+                            }}
+                            className={cn(
+                              "flex items-center space-x-3 p-4 rounded-2xl border-2 transition-all text-left",
+                              newUser.permissions?.includes(p.id)
+                                ? "bg-blue-50 border-blue-600 text-blue-700 font-bold"
+                                : "bg-gray-50 border-transparent text-gray-500"
+                            )}
+                          >
+                            <p.icon size={18} />
+                            <span className="text-sm">{p.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="flex space-x-4">
+                      <Button variant="outline" className="flex-1" onClick={() => setIsAddingUser(false)}>Annuler</Button>
+                      <Button className="flex-1" onClick={handleAddTeamUser} isLoading={saving}>Confirmer l'Ajout</Button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-1 gap-6">
+                  {teamUsers.map((tUser) => (
+                    <div key={tUser.id} className="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center font-black text-xl uppercase">
+                          {tUser.displayName?.charAt(0) || 'U'}
+                        </div>
+                        <div>
+                          <div className="flex items-center space-x-2">
+                            <h4 className="text-xl font-bold text-gray-900">{tUser.displayName}</h4>
+                            <span className={cn(
+                              "text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest",
+                              tUser.role === 'superadmin' ? "bg-amber-100 text-amber-600" : "bg-blue-100 text-blue-600"
+                            )}>
+                              {tUser.role}
+                            </span>
+                          </div>
+                          <p className="text-gray-500">{tUser.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex-1 max-w-md">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Modules accessibles</p>
+                        <div className="flex flex-wrap gap-1">
+                          {tUser.permissions?.includes('all') ? (
+                            <span className="bg-emerald-50 text-emerald-600 text-[10px] font-bold px-2 py-1 rounded-lg">Accès Total</span>
+                          ) : (
+                            tUser.permissions?.map((pId: string) => {
+                              const p = PERMISSIONS_LIST.find(x => x.id === pId);
+                              return p ? (
+                                <span key={pId} className="bg-gray-100 text-gray-600 text-[10px] font-bold px-2 py-1 rounded-lg">
+                                  {p.label}
+                                </span>
+                              ) : null;
+                            })
+                          )}
+                          {(tUser.permissions?.length === 0 || !tUser.permissions) && (
+                            <span className="text-gray-400 text-[10px] italic">Aucun accès</span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        {tUser.role !== 'superadmin' && tUser.email !== adminData?.email && (
+                          <Button variant="danger" size="icon" icon={Trash2} onClick={() => handleDeleteTeamUser(tUser.email)} />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            ) : null}
           </AnimatePresence>
 
           {/* Success Notification */}
@@ -2721,7 +2977,17 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUp
                           </BarChart>
                        </ResponsiveContainer>
                     </div>
-                    <div className="space-y-4">
+                    <div className="space-y-4 pt-8 lg:pt-0">
+                       <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Top Candidats</p>
+                       {[...session.candidates].sort((a: any, b: any) => (b.voteCount || 0) - (a.voteCount || 0)).slice(0, 3).map((cand, i) => (
+                         <div key={cand.id} className="bg-white/5 p-4 rounded-3xl flex items-center space-x-4">
+                           <img src={cand.imageUrl || `https://picsum.photos/seed/${cand.id}/50/50`} className="w-10 h-10 rounded-xl object-cover shadow-lg" referrerPolicy="no-referrer" alt={cand.name} />
+                           <div className="flex-1 min-w-0">
+                             <h4 className="font-bold text-sm truncate">{cand.name}</h4>
+                             <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest">{cand.voteCount || 0} Voix</p>
+                           </div>
+                         </div>
+                       ))}
                        <div className="bg-white/5 p-6 rounded-3xl">
                           <span className="text-[10px] uppercase text-blue-400 font-bold">Total Votants</span>
                           <p className="text-4xl font-black">{session.voterCount || 0}</p>
@@ -2763,11 +3029,19 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUp
                         </td>
                         <td className="px-8 py-6">
                            <div className="flex flex-wrap gap-2">
-                              {ballot.candidateIds?.map((cid: string) => (
-                                <span key={cid} className="text-[10px] font-black bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
-                                   {session.candidates.find((c: any) => c.id === cid)?.name || cid}
-                                </span>
-                              ))}
+                              {ballot.candidateIds?.map((cid: string) => {
+                                const cand = session.candidates.find((c: any) => c.id === cid);
+                                return (
+                                  <div key={cid} className="flex items-center space-x-2 bg-blue-50 text-blue-600 px-2 py-1 rounded-lg">
+                                     <img 
+                                      src={cand?.imageUrl || `https://picsum.photos/seed/${cid}/50/50`} 
+                                      className="w-5 h-5 rounded-md object-cover" 
+                                      referrerPolicy="no-referrer"
+                                    />
+                                     <span className="text-[10px] font-black">{cand?.name || cid}</span>
+                                  </div>
+                                );
+                              })}
                            </div>
                         </td>
                         <td className="px-8 py-6 text-sm text-gray-500">{new Date(ballot.timestamp).toLocaleString()}</td>

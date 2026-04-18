@@ -205,6 +205,24 @@
         "date": { "type": "string", "description": "YYYY-MM-DD" }
       },
       "required": ["visits", "date"]
+    },
+    "AdminUser": {
+      "title": "Admin User",
+      "description": "A user with access to the admin dashboard",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "format": "email" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["superadmin", "moderator"] },
+        "isAdmin": { "type": "boolean", "description": "True for superadmins who can manage other users" },
+        "permissions": { 
+          "type": "array", 
+          "items": { "type": "string" },
+          "description": "List of tabs/actions the user can access: voting, news, portfolio, services, analytics, appointments, contacts, settings"
+        },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["email", "role", "permissions"]
     }
   },
   "firestore": {
@@ -217,6 +235,7 @@
     "/appointments/{appointmentId}": { "schema": "Appointment", "description": "List of appointment requests" },
     "/quotes/{quoteId}": { "schema": "Quote", "description": "List of quote requests" },
     "/contacts/{contactId}": { "schema": "Contact", "description": "List of contact messages" },
+    "/users/{userEmail}": { "schema": "AdminUser", "description": "List of administrative users keyed by email" },
     "/analytics/realtime/sessions/{sessionId}": { "schema": "Visitor", "description": "Real-time active sessions" },
     "/analytics/history/days/{date}": { "schema": "DailyStats", "description": "Historical visit statistics" }
   }
