@@ -9,6 +9,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
+import multer from 'multer';
+import fs from 'fs';
 
 // Load environment variables from .env file
 dotenv.config({ path: path.join(process.cwd(), '.env') });
@@ -41,7 +43,50 @@ async function startServer() {
 
   app.use(express.json());
 
+  // Configure Multer for file uploads
+  const uploadsDir = path.join(process.cwd(), 'public', 'uploads');
+  if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  }
+
+  const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, uploadsDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      cb(null, uniqueSuffix + '-' + file.originalname);
+    }
+  });
+
+  const upload = multer({ storage: storage });
+
   // API Routes
+  app.post('/api/upload', upload.single('file'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file uploaded' });
+    }
+    // The URL should be relative to the site root
+    const fileUrl = `/uploads/${req.file.filename}`;
+    res.json({ success: true, url: fileUrl });
+  });
+
+  app.post('/api/delete-file', (req, res) => {
+    const { url } = req.body;
+    if (!url) return res.status(400).json({ success: false, message: 'URL required' });
+
+    // Ensure we are only deleting from the uploads folder for security
+    const fileName = path.basename(url);
+    const filePath = path.join(uploadsDir, fileName);
+
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      res.json({ success: true, message: 'File deleted' });
+    } else {
+      res.status(404).json({ success: false, message: 'File not found' });
+    }
+  });
+
   app.post('/api/contact', async (req, res) => {
     const { name, email, message, type, service, phone, company, budget, description } = req.body;
     

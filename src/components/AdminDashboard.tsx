@@ -10,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import { auth, db, storage } from '../firebase';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, setDoc, getDoc, addDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, AreaChart, Area, Cell, PieChart, Pie } from 'recharts';
 import Button from './ui/Button';
 import { servicesData as staticServices, portfolioItems as staticPortfolio } from '../data';
@@ -117,26 +116,47 @@ export default function AdminDashboard() {
     if (!file) return;
     setUploading(fieldId);
     try {
-      const storageRef = ref(storage, `${path}/${Date.now()}_${file.name}`);
-      await uploadBytes(storageRef, file);
-      const url = await getDownloadURL(storageRef);
-      callback(url);
-      setShowSuccess('Fichier téléchargé avec succès !');
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('path', path);
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        callback(result.url);
+        setShowSuccess('Fichier téléchargé sur le serveur avec succès !');
+      } else {
+        throw new Error(result.message || 'Erreur lors du téléchargement');
+      }
     } catch (error: any) {
       console.error('Upload error:', error);
-      let errorMsg = 'Erreur lors du téléchargement du fichier.';
-      if (error.code === 'storage/unauthorized') {
-        errorMsg = 'Permission refusée. Vérifiez que les règles de stockage autorisent les écritures.';
-      } else if (error.code === 'storage/canceled') {
-        errorMsg = 'Téléchargement annulé.';
-      } else if (error.code === 'storage/retry-limit-exceeded') {
-        errorMsg = 'Délai d\'attente dépassé. Veuillez vérifier que Firebase Storage est ACTIVÉ dans votre console Firebase et que vous avez créé le "Bucket" de stockage par défaut.';
-      } else if (error.code === 'storage/unknown') {
-        errorMsg = 'Erreur inconnue. Vérifiez la connexion et l\'état du service Storage.';
-      }
-      alert(errorMsg);
+      alert('Erreur lors du téléchargement du fichier sur le serveur. Vérifiez la connexion.');
     } finally {
       setUploading(null);
+    }
+  };
+
+  const handleDeleteFile = async (url: string) => {
+    if (!url.startsWith('/uploads/')) {
+       // Only delete local files
+       return;
+    }
+    try {
+      const response = await fetch('/api/delete-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      const result = await response.json();
+      if (result.success) {
+        setShowSuccess('Ancien fichier supprimé du serveur.');
+      }
+    } catch (error) {
+      console.error('Error deleting file:', error);
     }
   };
 
@@ -1762,6 +1782,7 @@ export default function AdminDashboard() {
                       onSave={handleSaveVoting}
                       onDelete={() => deleteItem('voting', session.id)}
                       onFileUpload={handleFileUpload}
+                      onDeleteFile={handleDeleteFile}
                     />
                   ))}
                 </div>
@@ -2426,7 +2447,7 @@ export default function AdminDashboard() {
   );
 }
 
-function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUpload }: { session: any, onSave: (s: any) => void, onDelete: () => void, onFileUpload: (file: File, path: string, id: string, cb: (url: string) => void) => void, key?: any }) {
+function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUpload, onDeleteFile }: { session: any, onSave: (s: any) => void, onDelete: () => void, onFileUpload: (file: File, path: string, id: string, cb: (url: string) => void) => void, onDeleteFile: (url: string) => void, key?: any }) {
   const [session, setSession] = useState(initialSession);
   const [isExpanded, setIsExpanded] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState<'config' | 'candidates' | 'stats' | 'ballots'>('config');
@@ -2560,13 +2581,37 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUp
                     {session.candidates.map((cand: any, idx: number) => (
                       <div key={cand.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col items-center">
                         <div className="relative group mb-6">
-                          <img src={cand.imageUrl} className="w-32 h-32 rounded-3xl object-cover shadow-lg" referrerPolicy="no-referrer" />
-                          <button 
-                            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl flex items-center justify-center text-white"
-                            onClick={() => document.getElementById(`file-cand-${cand.id}`)?.click()}
-                          >
-                            <ImageIcon size={24} />
-                          </button>
+                          <img 
+                            key={cand.imageUrl}
+                            src={cand.imageUrl || "https://picsum.photos/seed/placeholder/400/400"} 
+                            className="w-32 h-32 rounded-3xl object-cover shadow-lg border-2 border-gray-100" 
+                            referrerPolicy="no-referrer" 
+                          />
+                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-3xl flex items-center justify-center space-x-2">
+                             <button 
+                               title="Changer la photo (Upload)"
+                               className="p-2 bg-white/20 hover:bg-white/40 rounded-xl text-white transition-colors"
+                               onClick={() => document.getElementById(`file-cand-${cand.id}`)?.click()}
+                             >
+                               <ImageIcon size={20} />
+                             </button>
+                             {cand.imageUrl?.startsWith('/uploads/') && (
+                               <button 
+                                 title="Supprimer du serveur"
+                                 className="p-2 bg-red-500/20 hover:bg-red-500/40 rounded-xl text-red-200 transition-colors"
+                                 onClick={() => {
+                                   if(confirm("Supprimer définitivement ce fichier du serveur ?")) {
+                                      onDeleteFile(cand.imageUrl);
+                                      const newCands = [...session.candidates];
+                                      newCands[idx].imageUrl = "";
+                                      setSession({...session, candidates: newCands});
+                                   }
+                                 }}
+                               >
+                                 <Trash2 size={20} />
+                               </button>
+                             )}
+                          </div>
                           {uploadingId === cand.id && (
                             <div className="absolute inset-0 bg-white/80 rounded-3xl flex items-center justify-center">
                               <Loader2 size={24} className="animate-spin text-blue-600" />
@@ -2580,6 +2625,10 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUp
                             onChange={(e) => {
                               const file = e.target.files?.[0];
                               if (file) {
+                                // If already has a local file, delete it first
+                                if (cand.imageUrl?.startsWith('/uploads/')) {
+                                  onDeleteFile(cand.imageUrl);
+                                }
                                 setUploadingId(cand.id);
                                 onFileUpload(file, 'candidates', cand.id, (url) => {
                                   const newCands = [...session.candidates];
@@ -2605,7 +2654,7 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUp
                             />
                           </div>
                           <div className="space-y-1">
-                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">URL de la Photo (Alternative au téléchargement)</label>
+                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">URL de la Photo (Prévisualisation auto)</label>
                             <input 
                               className="w-full bg-gray-50 rounded-2xl p-4 font-medium text-xs border-2 border-transparent focus:border-blue-600/10 focus:bg-white transition-all" 
                               placeholder="https://..."
@@ -2636,6 +2685,9 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUp
                             {cand.voteCount || 0} Voix
                           </div>
                           <Button variant="danger" size="icon" icon={Trash2} onClick={() => {
+                            if (cand.imageUrl?.startsWith('/uploads/')) {
+                              onDeleteFile(cand.imageUrl);
+                            }
                             const newCands = session.candidates.filter((c: any) => c.id !== cand.id);
                             setSession({...session, candidates: newCands});
                           }} />
