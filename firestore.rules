@@ -205,5 +205,15 @@ service cloud.firestore {
       allow read: if isAuthenticated() && request.auth.uid == userId;
       allow write: if isAdmin();
     }
+
+    match /analytics/realtime/sessions/{sessionId} {
+      allow create, update, get: if true;
+      allow read, delete: if isAdmin();
+    }
+
+    match /analytics/history/days/{date} {
+      allow create, update, get: if true;
+      allow read, delete: if isAdmin();
+    }
   }
 }

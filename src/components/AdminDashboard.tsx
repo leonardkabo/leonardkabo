@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, Eye, Upload, Loader2, Vote, Info } from 'lucide-react';
+import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, Eye, Upload, Loader2, Vote, Info, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db, storage } from '../firebase';
@@ -38,7 +38,9 @@ export default function AdminDashboard() {
   const [news, setNews] = useState<any[]>([]);
   const [votingSessions, setVotingSessions] = useState<any[]>([]);
   const [ballots, setBallots] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'contacts' | 'content' | 'services' | 'portfolio' | 'news' | 'settings' | 'promos' | 'voting'>('appointments');
+  const [realtimeSessions, setRealtimeSessions] = useState<any[]>([]);
+  const [visitHistory, setVisitHistory] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<'appointments' | 'quotes' | 'contacts' | 'content' | 'services' | 'portfolio' | 'news' | 'settings' | 'promos' | 'voting' | 'audience'>('appointments');
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
@@ -192,6 +194,14 @@ export default function AdminDashboard() {
       setVotingSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     }, (error) => handleFirestoreError(error, OperationType.LIST, 'voting'));
 
+    const unsubRealtime = onSnapshot(collection(db, 'analytics', 'realtime', 'sessions'), (snapshot) => {
+      setRealtimeSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'analytics/realtime/sessions'));
+
+    const unsubHistory = onSnapshot(query(collection(db, 'analytics', 'history', 'days'), orderBy('date', 'desc')), (snapshot) => {
+      setVisitHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'analytics/history/days'));
+
     getDoc(doc(db, 'settings', 'mapConfig')).then((docSnap) => {
       if (docSnap.exists()) {
         const data = docSnap.data();
@@ -207,6 +217,8 @@ export default function AdminDashboard() {
       unsubPortfolio();
       unsubNews();
       unsubVoting();
+      unsubRealtime();
+      unsubHistory();
     };
   }, [user]);
 
@@ -497,6 +509,16 @@ export default function AdminDashboard() {
 
   // Real-time data aggregation for charts
   const getVisitorData = () => {
+    // Use last 7 days from actual history if available
+    const last7DaysData = visitHistory.slice(0, 7).reverse();
+    
+    if (last7DaysData.length > 0) {
+      return last7DaysData.map(d => ({
+        name: new Date(d.date).toLocaleDateString('fr-FR', { weekday: 'short' }),
+        visitors: d.visits || 0
+      }));
+    }
+
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (6 - i));
@@ -512,7 +534,7 @@ export default function AdminDashboard() {
         const d = new Date(q.createdAt);
         return d.toLocaleDateString('fr-FR', { weekday: 'short' }) === day;
       }).length;
-      return { name: day, visitors: (appts + qts) * 5 + 10, activity: appts + qts }; // Mocking visitors based on activity
+      return { name: day, visitors: (appts + qts) * 5 + 10, activity: appts + qts }; // Fallback mock
     });
 
     return counts;
@@ -597,6 +619,12 @@ export default function AdminDashboard() {
       </div>
     );
   }
+
+  const onlineCount = realtimeSessions.filter(s => {
+    if (!s.lastSeen) return false;
+    const lastSeen = typeof s.lastSeen === 'number' ? s.lastSeen : (s.lastSeen.toMillis ? s.lastSeen.toMillis() : Date.now());
+    return Date.now() - lastSeen < 5 * 60 * 1000;
+  }).length;
 
   return (
     <div className="min-h-screen bg-gray-50 pt-32 pb-24">
@@ -814,6 +842,13 @@ export default function AdminDashboard() {
             icon={Vote}
           >
             Système de Vote
+          </Button>
+          <Button
+            variant={activeTab === 'audience' ? 'primary' : 'outline'}
+            onClick={() => setActiveTab('audience')}
+            icon={Users}
+          >
+            Audience (Live: {onlineCount})
           </Button>
           <Button
             variant={activeTab === 'settings' ? 'primary' : 'outline'}
@@ -1094,6 +1129,134 @@ export default function AdminDashboard() {
                     ))}
                   </>
                 )}
+              </motion.div>
+            ) : activeTab === 'audience' ? (
+              <motion.div
+                key="audience-tab"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-12"
+              >
+                {/* Dashboard summary */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                  <div className="bg-blue-600 text-white p-10 rounded-[3rem] shadow-xl shadow-blue-600/20">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="w-12 h-12 bg-white/20 rounded-2xl flex items-center justify-center">
+                        <Activity size={24} />
+                      </div>
+                      <div className="px-3 py-1 bg-white/20 rounded-full text-[10px] font-black uppercase tracking-widest animate-pulse">Live</div>
+                    </div>
+                    <p className="text-blue-100 font-bold uppercase tracking-widest text-xs mb-2">Visiteurs Actifs</p>
+                    <h4 className="text-5xl font-black">{onlineCount}</h4>
+                  </div>
+
+                  <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm">
+                    <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center mb-6">
+                      <Users size={24} />
+                    </div>
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mb-2">Total Sessions (24h)</p>
+                    <h4 className="text-4xl font-black text-gray-900">{realtimeSessions.length}</h4>
+                  </div>
+
+                  <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm">
+                    <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center mb-6">
+                      <TrendingUp size={24} />
+                    </div>
+                    <p className="text-gray-400 font-bold uppercase tracking-widest text-xs mb-2">Historique Dispo.</p>
+                    <h4 className="text-4xl font-black text-gray-900">{visitHistory.length} Jours</h4>
+                  </div>
+                </div>
+
+                {/* History Chart */}
+                <div className="bg-white p-10 rounded-[3rem] border border-gray-100 shadow-sm">
+                  <h3 className="text-2xl font-bold mb-8">Evolution du Trafic</h3>
+                  <div className="h-[400px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={[...visitHistory].reverse().slice(-30)}>
+                        <defs>
+                          <linearGradient id="colorVisitsAudience" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#2563eb" stopOpacity={0.1}/>
+                            <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                        <XAxis 
+                          dataKey="date" 
+                          axisLine={false} 
+                          tickLine={false} 
+                          tick={{fill: '#94a3b8', fontSize: 10}} 
+                          dy={10}
+                          tickFormatter={(val) => val.split('-').slice(1).reverse().join('/')}
+                        />
+                        <YAxis axisLine={false} tickLine={false} tick={{fill: '#94a3b8', fontSize: 12}} />
+                        <Tooltip 
+                          contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}}
+                        />
+                        <Area type="monotone" dataKey="visits" name="Visites" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorVisitsAudience)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Real-time Sessions Table */}
+                <div className="bg-white rounded-[3rem] overflow-hidden border border-gray-100 shadow-sm">
+                  <div className="p-8 border-b border-gray-50 flex items-center justify-between">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">Sessions Actuelles</h3>
+                      <p className="text-sm text-gray-500">Mise à jour en temps réel</p>
+                    </div>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Session ID</th>
+                          <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Page Actuelle</th>
+                          <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Dernière Activité</th>
+                          <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Appareil</th>
+                          <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Statut</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-50">
+                        {realtimeSessions
+                          .sort((a, b) => {
+                             const ta = a.lastSeen?.toMillis?.() || 0;
+                             const tb = b.lastSeen?.toMillis?.() || 0;
+                             return tb - ta;
+                          })
+                          .map(session => {
+                            const lastSeenMillis = session.lastSeen?.toMillis?.() || 0;
+                            const isOnline = Date.now() - lastSeenMillis < 5 * 60 * 1000;
+                            return (
+                              <tr key={session.id} className="hover:bg-gray-50/50 transition-colors">
+                                <td className="px-8 py-6 font-mono text-xs text-blue-600">{session.id}</td>
+                                <td className="px-8 py-6">
+                                  <span className="px-3 py-1 bg-gray-100 rounded-full text-[10px] font-bold text-gray-600 tracking-tight">
+                                    {session.path || '/'}
+                                  </span>
+                                </td>
+                                <td className="px-8 py-6 text-sm text-gray-500">
+                                  {session.lastSeen ? new Date(lastSeenMillis).toLocaleTimeString() : 'Inconnu'}
+                                </td>
+                                <td className="px-8 py-6 text-xs text-gray-400 truncate max-w-[200px]" title={session.device}>
+                                  {session.device || 'Inconnu'}
+                                </td>
+                                <td className="px-8 py-6">
+                                  <div className="flex items-center gap-2">
+                                    <div className={cn("w-2 h-2 rounded-full", isOnline ? "bg-emerald-500 animate-pulse" : "bg-gray-300")} />
+                                    <span className={cn("text-[10px] font-black uppercase tracking-widest", isOnline ? "text-emerald-600" : "text-gray-400")}>
+                                      {isOnline ? 'En ligne' : 'Inactif'}
+                                    </span>
+                                  </div>
+                                </td>
+                              </tr>
+                            );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
               </motion.div>
             ) : activeTab === 'content' ? (
               <motion.div

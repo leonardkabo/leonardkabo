@@ -184,6 +184,27 @@
         }
       },
       "required": ["title", "active", "maxVotes", "candidates"]
+    },
+    "Visitor": {
+      "title": "Visitor session",
+      "description": "Information about a current visitor session for real-time tracking",
+      "type": "object",
+      "properties": {
+        "lastSeen": { "type": "number", "description": "Timestamp of the last heartbeat" },
+        "path": { "type": "string", "description": "Current path the user is visiting" },
+        "device": { "type": "string", "description": "Simple device/browser info" }
+      },
+      "required": ["lastSeen"]
+    },
+    "DailyStats": {
+      "title": "Daily Stats",
+      "description": "Aggregated stats for a specific day",
+      "type": "object",
+      "properties": {
+        "visits": { "type": "number", "description": "Total unique session visits for the day" },
+        "date": { "type": "string", "description": "YYYY-MM-DD" }
+      },
+      "required": ["visits", "date"]
     }
   },
   "firestore": {
@@ -195,6 +216,8 @@
     "/news/{newsId}": { "schema": "NewsItem", "description": "List of news articles" },
     "/appointments/{appointmentId}": { "schema": "Appointment", "description": "List of appointment requests" },
     "/quotes/{quoteId}": { "schema": "Quote", "description": "List of quote requests" },
-    "/contacts/{contactId}": { "schema": "Contact", "description": "List of contact messages" }
+    "/contacts/{contactId}": { "schema": "Contact", "description": "List of contact messages" },
+    "/analytics/realtime/sessions/{sessionId}": { "schema": "Visitor", "description": "Real-time active sessions" },
+    "/analytics/history/days/{date}": { "schema": "DailyStats", "description": "Historical visit statistics" }
   }
 }

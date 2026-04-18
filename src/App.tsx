@@ -8,6 +8,7 @@ import React, { useEffect, Suspense, lazy } from 'react';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import AnnouncementBanner from './components/AnnouncementBanner';
+import VisitorTracker from './components/VisitorTracker';
 import { motion, AnimatePresence } from 'motion/react';
 import SEO from './components/SEO';
 import LoadingScreen from './components/LoadingScreen';
@@ -65,6 +66,7 @@ export default function App() {
       <Suspense fallback={null}>
         <CountdownOverlay />
       </Suspense>
+      <VisitorTracker />
       <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-600">
         <Navbar />
         <main>
