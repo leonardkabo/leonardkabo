@@ -126,11 +126,13 @@ export default function AdminDashboard() {
       console.error('Upload error:', error);
       let errorMsg = 'Erreur lors du téléchargement du fichier.';
       if (error.code === 'storage/unauthorized') {
-        errorMsg = 'Permission refusée. Veuillez vérifier vos règles de sécurité Firebase Storage.';
+        errorMsg = 'Permission refusée. Vérifiez que les règles de stockage autorisent les écritures.';
       } else if (error.code === 'storage/canceled') {
         errorMsg = 'Téléchargement annulé.';
+      } else if (error.code === 'storage/retry-limit-exceeded') {
+        errorMsg = 'Délai d\'attente dépassé. Veuillez vérifier que Firebase Storage est ACTIVÉ dans votre console Firebase et que vous avez créé le "Bucket" de stockage par défaut.';
       } else if (error.code === 'storage/unknown') {
-        errorMsg = 'Erreur inconnue. Vérifiez que Firebase Storage est activé dans votre console.';
+        errorMsg = 'Erreur inconnue. Vérifiez la connexion et l\'état du service Storage.';
       }
       alert(errorMsg);
     } finally {
@@ -2598,6 +2600,19 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUp
                               onChange={e => {
                                 const newCands = [...session.candidates];
                                 newCands[idx].name = e.target.value;
+                                setSession({...session, candidates: newCands});
+                              }} 
+                            />
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">URL de la Photo (Alternative au téléchargement)</label>
+                            <input 
+                              className="w-full bg-gray-50 rounded-2xl p-4 font-medium text-xs border-2 border-transparent focus:border-blue-600/10 focus:bg-white transition-all" 
+                              placeholder="https://..."
+                              value={cand.imageUrl || ""} 
+                              onChange={e => {
+                                const newCands = [...session.candidates];
+                                newCands[idx].imageUrl = e.target.value;
                                 setSession({...session, candidates: newCands});
                               }} 
                             />
