@@ -7,6 +7,7 @@ import { motion } from 'motion/react';
 import { Rocket, MessageSquare, Star } from 'lucide-react';
 import { useSiteData } from '../hooks/useSiteData';
 import Button from './ui/Button';
+import { cn } from '../lib/utils';
 
 export default function Hero() {
   const { hero, loading } = useSiteData();
@@ -14,7 +15,7 @@ export default function Hero() {
   if (loading) return null;
 
   return (
-    <section className="relative pt-32 pb-20 overflow-hidden bg-gradient-to-br from-gray-50 to-blue-50/30">
+    <section className="relative pt-16 pb-20 overflow-hidden bg-gradient-to-br from-gray-50 to-blue-50/30">
       {/* Background Accents */}
       <div className="absolute top-0 right-0 w-1/3 h-full bg-blue-600/5 -skew-x-12 transform translate-x-1/2" />
       <div className="absolute -top-24 -left-24 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl" />
@@ -31,12 +32,12 @@ export default function Hero() {
               <span>{hero.badge}</span>
             </div>
             
-            <h1 className="text-6xl sm:text-7xl font-bold text-gray-900 leading-[1.1] mb-6 tracking-tight">
+            <h1 className="text-6xl sm:text-8xl font-black text-gray-900 leading-[0.9] mb-8 tracking-tighter">
               {hero.title} <br />
               <span className="text-blue-600">{hero.subtitle}</span>
             </h1>
             
-            <p className="text-xl text-gray-600 mb-10 leading-relaxed max-w-xl">
+            <p className="text-xl text-gray-600 mb-12 leading-relaxed max-w-2xl font-medium">
               {hero.description}
             </p>
             
@@ -83,21 +84,21 @@ export default function Hero() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.6 + (idx * 0.2) }}
-                  className={`absolute bg-white p-6 rounded-3xl shadow-xl shadow-blue-900/5 border border-gray-100 pointer-events-auto ${
-                    stat.label.toLowerCase().includes('livre') || stat.label.toLowerCase().includes('book')
-                      ? '-top-6 -right-6' 
-                      : '-bottom-6 -left-6'
-                  }`}
+                  className={cn(
+                    "absolute bg-white/90 backdrop-blur-xl p-6 rounded-[2rem] shadow-2xl shadow-blue-900/10 border border-white/50 pointer-events-auto min-w-[220px]",
+                    idx === 0 ? "-top-10 left-1/2 -translate-x-1/2 rotate-[-2deg]" : "-bottom-10 left-1/2 -translate-x-1/2 rotate-[2deg]"
+                  )}
                 >
                   <div className="flex items-center space-x-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-bold text-xl ${
-                      stat.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'
-                    }`}>
+                    <div className={cn(
+                      "w-14 h-14 rounded-2xl flex items-center justify-center font-black text-2xl shadow-inner",
+                      stat.color === 'emerald' ? 'bg-emerald-100 text-emerald-600' : 'bg-blue-100 text-blue-600'
+                    )}>
                       {stat.value}
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-gray-900 leading-none">{stat.label}</div>
-                      <div className="text-xs text-gray-500 mt-1 uppercase tracking-wider">{stat.sublabel}</div>
+                      <div className="text-sm font-black text-gray-900 leading-none mb-1">{stat.label}</div>
+                      <div className="text-[10px] text-gray-500 uppercase tracking-[0.2em] font-bold">{stat.sublabel}</div>
                     </div>
                   </div>
                 </motion.div>

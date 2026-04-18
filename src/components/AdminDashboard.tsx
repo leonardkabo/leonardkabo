@@ -2444,6 +2444,7 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete }: { sess
                   <thead className="bg-gray-50 border-b border-gray-100">
                     <tr>
                       <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Votant</th>
+                      <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Téléphone</th>
                       <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Choix</th>
                       <th className="px-8 py-6 text-xs font-black uppercase text-gray-400">Date</th>
                       <th className="px-8 py-6 text-xs font-black uppercase text-gray-400 text-right">Actions</th>
@@ -2459,6 +2460,9 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete }: { sess
                             </div>
                             <span className="font-bold text-gray-900">{ballot.voterName}</span>
                           </div>
+                        </td>
+                        <td className="px-8 py-6 text-sm font-mono text-gray-600">
+                          {ballot.voterPhone || "N/A"}
                         </td>
                         <td className="px-8 py-6">
                            <div className="flex flex-wrap gap-2">
@@ -2484,7 +2488,7 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete }: { sess
                     ))}
                     {ballots.length === 0 && (
                       <tr>
-                        <td colSpan={4} className="px-8 py-12 text-center text-gray-400 italic">Aucun bulletin enregistré.</td>
+                        <td colSpan={5} className="px-8 py-12 text-center text-gray-400 italic">Aucun bulletin enregistré.</td>
                       </tr>
                     )}
                   </tbody>

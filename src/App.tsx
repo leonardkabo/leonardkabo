@@ -66,7 +66,6 @@ export default function App() {
         <CountdownOverlay />
       </Suspense>
       <div className="min-h-screen bg-white font-sans text-gray-900 selection:bg-blue-100 selection:text-blue-600">
-        <AnnouncementBanner />
         <Navbar />
         <main>
           <AnimatePresence mode="wait">
@@ -76,6 +75,9 @@ export default function App() {
                 path="/"
                 element={
                   <PageWrapper>
+                    <div className="pt-16">
+                      <AnnouncementBanner />
+                    </div>
                     <SEO />
                     <Hero />
                     <ServicesGrid />

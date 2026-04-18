@@ -157,7 +157,7 @@ service cloud.firestore {
       allow read: if true;
       allow update: if (
         // Public Vote Action: Only voterCount and candidates can be updated during active vote
-        (resource.data.active == true && request.resource.data.diff(resource.data).affectedKeys().hasAny(['candidates', 'voterCount'])) ||
+        (resource.data.get('active', false) == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['candidates', 'voterCount'])) ||
         isAdmin()
       );
       allow create, delete: if isAdmin();
@@ -165,10 +165,11 @@ service cloud.firestore {
       match /ballots/{ballotId} {
         allow read: if isAdmin();
         allow create: if (
-          get(/databases/$(database)/documents/voting/$(docId)).data.active == true &&
+          get(/databases/$(database)/documents/voting/$(docId)).data.get('active', false) == true &&
           request.resource.data.voterName is string &&
+          request.resource.data.voterPhone is string &&
           request.resource.data.candidateIds is list &&
-          request.resource.data.timestamp is string
+          request.resource.data.timestamp in [request.time, null]
         );
         allow write: if isAdmin();
       }
