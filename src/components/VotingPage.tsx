@@ -126,10 +126,40 @@ export default function VotingPage() {
 
   const chartData = activeSession.candidates.map(c => ({
     name: c.name,
-    votes: c.voteCount || 0
+    votes: c.voteCount || 0,
+    imageUrl: c.imageUrl,
+    id: c.id
   })).sort((a, b) => b.votes - a.votes);
 
   const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#8b5cf6', '#ef4444', '#ec4899'];
+
+  const ChartTick = (props: any) => {
+    const { x, y, payload } = props;
+    const item = chartData.find(d => d.name === payload.value);
+    if (!item) return null;
+
+    return (
+      <g transform={`translate(${x},${y})`}>
+        <foreignObject x="-250" y="-25" width="240" height="50">
+          <div className="flex items-center justify-end space-x-3 w-full h-full pr-4 overflow-hidden">
+            <div className="text-right min-w-0 flex-1">
+              <p className="text-[10px] font-black text-gray-900 leading-none uppercase line-clamp-2">
+                {item.name}
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <img 
+                src={item.imageUrl || `https://picsum.photos/seed/${item.id}/60/60`} 
+                className="w-10 h-10 rounded-xl object-cover border-2 border-white shadow-sm"
+                referrerPolicy="no-referrer"
+                alt=""
+              />
+            </div>
+          </div>
+        </foreignObject>
+      </g>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-gray-50 py-20 px-4">
@@ -208,12 +238,20 @@ export default function VotingPage() {
                       </div>
                     </div>
 
-                    <div className="h-[400px] w-full mb-12">
+                    <div style={{ height: `${Math.max(400, chartData.length * 85)}px` }} className="w-full mb-12">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} layout="vertical">
+                        <BarChart data={chartData} layout="vertical" margin={{ left: 30, right: 30 }}>
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                           <XAxis type="number" hide />
-                          <YAxis dataKey="name" type="category" width={100} axisLine={false} tickLine={false} tick={{ fontSize: 12, fontWeight: 700, fill: '#1e293b' }} />
+                          <YAxis 
+                            dataKey="name" 
+                            type="category" 
+                            width={240} 
+                            axisLine={false} 
+                            tickLine={false}
+                            interval={0}
+                            tick={<ChartTick />}
+                          />
                           <Tooltip 
                             contentStyle={{ borderRadius: '1.5rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
                             cursor={{ fill: '#f8fafc' }}
