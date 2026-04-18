@@ -22,6 +22,14 @@ export default function VotingPage() {
   const [hasVoted, setHasVoted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [votingStep, setVotingStep] = useState<'none' | 'selecting' | 'identity'>('none');
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 1024);
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const activeSessions = useMemo(() => {
     return votingSessions.filter(s => {
@@ -138,19 +146,27 @@ export default function VotingPage() {
     const item = chartData.find(d => d.name === payload.value);
     if (!item) return null;
 
+    const labelWidth = isMobile ? 120 : 240;
+
     return (
       <g transform={`translate(${x},${y})`}>
-        <foreignObject x="-250" y="-25" width="240" height="50">
-          <div className="flex items-center justify-end space-x-3 w-full h-full pr-4 overflow-hidden">
+        <foreignObject x={-(labelWidth + 10)} y={isMobile ? "-15" : "-25"} width={labelWidth} height={isMobile ? "30" : "50"}>
+          <div className="flex items-center justify-end space-x-2 w-full h-full pr-2 overflow-hidden">
             <div className="text-right min-w-0 flex-1">
-              <p className="text-[10px] font-black text-gray-900 leading-none uppercase line-clamp-2">
+              <p className={cn(
+                "font-black text-gray-900 leading-none uppercase line-clamp-2",
+                isMobile ? "text-[8px]" : "text-[10px]"
+              )}>
                 {item.name}
               </p>
             </div>
             <div className="flex-shrink-0">
               <img 
                 src={item.imageUrl || `https://picsum.photos/seed/${item.id}/60/60`} 
-                className="w-10 h-10 rounded-xl object-cover border-2 border-white shadow-sm"
+                className={cn(
+                  "rounded-lg object-cover border-2 border-white shadow-sm",
+                  isMobile ? "w-6 h-6 border-1" : "w-10 h-10 border-2"
+                )}
                 referrerPolicy="no-referrer"
                 alt=""
               />
@@ -238,15 +254,15 @@ export default function VotingPage() {
                       </div>
                     </div>
 
-                    <div style={{ height: `${Math.max(400, chartData.length * 85)}px` }} className="w-full mb-12">
+                    <div style={{ height: `${Math.max(300, chartData.length * (isMobile ? 50 : 85))}px` }} className="w-full mb-12">
                       <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} layout="vertical" margin={{ left: 30, right: 30 }}>
+                        <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30 }}>
                           <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                           <XAxis type="number" hide />
                           <YAxis 
                             dataKey="name" 
                             type="category" 
-                            width={240} 
+                            width={isMobile ? 120 : 240} 
                             axisLine={false} 
                             tickLine={false}
                             interval={0}
