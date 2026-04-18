@@ -55,11 +55,20 @@ async function startServer() {
     },
     filename: (req, file, cb) => {
       const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-      cb(null, uniqueSuffix + '-' + file.originalname);
+      // Clean filename: remove accents, spaces, and special characters
+      const cleanName = file.originalname
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '') // Remove accents
+        .replace(/[^a-zA-Z0-9.]/g, '-') // Replace everything else with -
+        .replace(/-+/g, '-'); // Merge multiple -
+      cb(null, uniqueSuffix + '-' + cleanName);
     }
   });
 
   const upload = multer({ storage: storage });
+
+  // Serve the uploads directory STATICALLY so it's accessible in all environments
+  app.use('/uploads', express.static(uploadsDir));
 
   // API Routes
   app.post('/api/upload', upload.single('file'), (req, res) => {

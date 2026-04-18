@@ -2660,8 +2660,16 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUp
                               placeholder="https://..."
                               value={cand.imageUrl || ""} 
                               onChange={e => {
+                                let val = e.target.value;
+                                // Auto-fix Google Drive links
+                                if (val.includes('drive.google.com')) {
+                                  const match = val.match(/\/file\/d\/([^\/]+)/) || val.match(/[?&]id=([^&]+)/);
+                                  if (match && match[1]) {
+                                    val = `https://drive.google.com/uc?export=view&id=${match[1]}`;
+                                  }
+                                }
                                 const newCands = [...session.candidates];
-                                newCands[idx].imageUrl = e.target.value;
+                                newCands[idx].imageUrl = val;
                                 setSession({...session, candidates: newCands});
                               }} 
                             />
