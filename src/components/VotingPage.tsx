@@ -73,22 +73,69 @@ export default function VotingPage() {
   const handleSubmitVotes = async () => {
     if (!activeSession || selectedCandidates.length === 0 || !voterName.trim() || !voterPhone.trim()) return;
 
-    if (activeSession.isPaid && votingStep !== 'processing') {
+    if (activeSession.isPaid && votingStep === 'identity') {
       setVotingStep('payment');
       return;
     }
-    
-    setSubmitting(true);
-    try {
-      // Simulate Payment Processing if paid
-      if (activeSession.isPaid) {
+
+    if (activeSession.isPaid && votingStep === 'payment') {
+      if (!selectedProvider) {
+        alert("Veuillez choisir un réseau mobile.");
+        return;
+      }
+      setSubmitting(true);
+      try {
         setPaymentStatus('pending');
         setVotingStep('processing');
         // Simulate waiting for user confirmation on their phone
         await new Promise(resolve => setTimeout(resolve, 5000));
         setPaymentStatus('success');
-      }
 
+        const sessionRef = doc(db, 'voting', activeSession.id);
+        const ballotRef = doc(collection(db, 'voting', activeSession.id, 'ballots'));
+
+        // 1. Create Ballot
+        await setDoc(ballotRef, {
+          voterName,
+          voterPhone,
+          candidateIds: selectedCandidates,
+          timestamp: serverTimestamp(),
+          isPaid: true,
+          amount: activeSession.pricePerVote,
+          provider: selectedProvider,
+          paymentStatus: 'paid'
+        });
+
+        // 2. Update Session Stats
+        const updatedCandidates = activeSession.candidates.map((c: any) => {
+          if (selectedCandidates.includes(c.id)) {
+            return { ...c, voteCount: (c.voteCount || 0) + 1 };
+          }
+          return c;
+        });
+
+        await updateDoc(sessionRef, { 
+          candidates: updatedCandidates,
+          voterCount: increment(1)
+        });
+
+        setHasVoted(true);
+        setVotingStep('none');
+        setSelectedCandidates([]);
+        setPaymentStatus('idle');
+        setSelectedProvider(null);
+      } catch (error) {
+        console.error('Error submitting votes:', error);
+        setPaymentStatus('failed');
+        setVotingStep('payment');
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
+    
+    setSubmitting(true);
+    try {
       const sessionRef = doc(db, 'voting', activeSession.id);
       const ballotRef = doc(collection(db, 'voting', activeSession.id, 'ballots'));
 
@@ -98,10 +145,10 @@ export default function VotingPage() {
         voterPhone,
         candidateIds: selectedCandidates,
         timestamp: serverTimestamp(),
-        isPaid: activeSession.isPaid || false,
-        amount: activeSession.isPaid ? activeSession.pricePerVote : 0,
-        provider: selectedProvider,
-        paymentStatus: activeSession.isPaid ? 'paid' : 'n/a'
+        isPaid: false,
+        amount: 0,
+        provider: 'n/a',
+        paymentStatus: 'n/a'
       });
 
       // 2. Update Session Stats
@@ -118,20 +165,14 @@ export default function VotingPage() {
       });
 
       // Record vote locally
-      if (!activeSession.isPaid) {
-        const updatedVotedIds = [...alreadyVotedEvents, activeSession.id];
-        localStorage.setItem('voted_session_ids', JSON.stringify(updatedVotedIds));
-      }
+      const updatedVotedIds = [...alreadyVotedEvents, activeSession.id];
+      localStorage.setItem('voted_session_ids', JSON.stringify(updatedVotedIds));
       
       setHasVoted(true);
       setVotingStep('none');
       setSelectedCandidates([]);
-      // Reset payment status for next vote
-      setPaymentStatus('idle');
-      setSelectedProvider(null);
     } catch (error) {
       console.error('Error submitting votes:', error);
-      setPaymentStatus('failed');
     } finally {
       setSubmitting(false);
     }
@@ -387,7 +428,19 @@ export default function VotingPage() {
                         <Check size={32} />
                       </div>
                       <h3 className="text-xl font-black text-emerald-900 mb-2">Vote Enregistré</h3>
-                      <p className="text-emerald-700 font-medium text-sm">Merci pour votre participation ! Votre bulletin a été comptabilisé avec succès.</p>
+                      <p className="text-emerald-700 font-medium text-sm mb-6">Merci pour votre participation ! Votre bulletin a été comptabilisé avec succès.</p>
+                      {activeSession.isPaid && (
+                        <Button 
+                          variant="primary" 
+                          className="w-full h-14 rounded-2xl shadow-lg"
+                          onClick={() => {
+                            setHasVoted(false);
+                            setVotingStep('selecting');
+                          }}
+                        >
+                          Voter à nouveau
+                        </Button>
+                      )}
                     </div>
                   )}
 

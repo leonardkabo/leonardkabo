@@ -44,6 +44,7 @@ export default function AdminDashboard() {
   const [adminData, setAdminData] = useState<any>(null);
   const [teamUsers, setTeamUsers] = useState<any[]>([]);
   const [newUser, setNewUser] = useState<any>({ email: '', displayName: '', role: 'moderator', permissions: [] });
+  const [editingUserEmail, setEditingUserEmail] = useState<string | null>(null);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
   const [quotes, setQuotes] = useState<any[]>([]);
@@ -319,14 +320,26 @@ export default function AdminDashboard() {
     }
     setSaving(true);
     try {
-      await setDoc(doc(db, 'users', newUser.email), {
-        ...newUser,
-        createdAt: Date.now()
-      });
-      setShowSuccess('Utilisateur ajouté à l\'équipe !');
+      if (editingUserEmail) {
+        // Update
+        await updateDoc(doc(db, 'users', editingUserEmail), {
+          displayName: newUser.displayName,
+          permissions: newUser.permissions,
+          role: newUser.role
+        });
+        setShowSuccess('Utilisateur mis à jour !');
+      } else {
+        // Add
+        await setDoc(doc(db, 'users', newUser.email), {
+          ...newUser,
+          createdAt: Date.now()
+        });
+        setShowSuccess('Utilisateur ajouté à l\'équipe !');
+      }
       setNewUser({ email: '', displayName: '', role: 'moderator', permissions: [] });
+      setEditingUserEmail(null);
       setIsAddingUser(false);
-    } catch (e) { handleFirestoreError(e, OperationType.WRITE, 'users'); }
+    } catch (e) { handleFirestoreError(e, editingUserEmail ? OperationType.UPDATE : OperationType.WRITE, 'users'); }
     setSaving(false);
   };
 
@@ -2085,11 +2098,19 @@ export default function AdminDashboard() {
                     <h2 className="text-4xl font-black text-gray-900 tracking-tighter">Gestion de l'Équipe</h2>
                     <p className="text-gray-500 font-medium italic">Accréditez vos collaborateurs et gérez leurs permissions.</p>
                   </div>
-                  <Button onClick={() => setIsAddingUser(true)} icon={Plus} size="sm">Ajouter un Membre</Button>
+                  <Button onClick={() => {
+                    setNewUser({ email: '', displayName: '', role: 'moderator', permissions: [] });
+                    setEditingUserEmail(null);
+                    setIsAddingUser(true);
+                  }} icon={Plus} size="sm">Ajouter un Membre</Button>
                 </div>
 
                 {isAddingUser && (
                   <div className="bg-white p-8 rounded-[2.5rem] shadow-xl border border-blue-100 space-y-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-xl font-bold text-gray-900">{editingUserEmail ? 'Modifier les accès' : 'Nouvel Utilisateur'}</h3>
+                      {editingUserEmail && <span className="text-sm font-mono text-blue-600">{editingUserEmail}</span>}
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-2">
                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
@@ -2100,7 +2121,7 @@ export default function AdminDashboard() {
                           placeholder="ex: Jean Dupont"
                         />
                       </div>
-                      <div className="space-y-2">
+                      <div className={cn("space-y-2", editingUserEmail && "opacity-50 pointer-events-none")}>
                         <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Adresse Email (Google)</label>
                         <input
                           type="email"
@@ -2108,6 +2129,7 @@ export default function AdminDashboard() {
                           value={newUser.email}
                           onChange={(e) => setNewUser({...newUser, email: e.target.value})}
                           placeholder="jean.dupont@gmail.com"
+                          readOnly={!!editingUserEmail}
                         />
                       </div>
                     </div>
@@ -2140,8 +2162,13 @@ export default function AdminDashboard() {
                     </div>
 
                     <div className="flex space-x-4">
-                      <Button variant="outline" className="flex-1" onClick={() => setIsAddingUser(false)}>Annuler</Button>
-                      <Button className="flex-1" onClick={handleAddTeamUser} isLoading={saving}>Confirmer l'Ajout</Button>
+                      <Button variant="outline" className="flex-1" onClick={() => {
+                        setIsAddingUser(false);
+                        setEditingUserEmail(null);
+                      }}>Annuler</Button>
+                      <Button className="flex-1" onClick={handleAddTeamUser} isLoading={saving}>
+                        {editingUserEmail ? 'Enregistrer les modifications' : 'Confirmer l\'Ajout'}
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -2189,6 +2216,22 @@ export default function AdminDashboard() {
                       </div>
 
                       <div className="flex items-center space-x-2">
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          icon={Edit2} 
+                          onClick={() => {
+                            setNewUser({
+                              email: tUser.email,
+                              displayName: tUser.displayName,
+                              role: tUser.role,
+                              permissions: tUser.permissions || []
+                            });
+                            setEditingUserEmail(tUser.email);
+                            setIsAddingUser(true);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }} 
+                        />
                         {tUser.role !== 'superadmin' && tUser.email !== adminData?.email && (
                           <Button variant="danger" size="icon" icon={Trash2} onClick={() => handleDeleteTeamUser(tUser.email)} />
                         )}

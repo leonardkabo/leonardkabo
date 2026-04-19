@@ -9,6 +9,8 @@ import { Lock, LogIn, AlertCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { auth } from '../firebase';
 import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from 'firebase/auth';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../firebase';
 import Button from './ui/Button';
 
 export default function AdminLogin() {
@@ -17,9 +19,18 @@ export default function AdminLogin() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && user.email === 'leonardkabo32@gmail.com') {
-        navigate('/admin/dashboard');
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        if (user.email === 'leonardkabo32@gmail.com') {
+          navigate('/admin/dashboard');
+          return;
+        }
+        
+        // Check if user is in team
+        const userDoc = await getDoc(doc(db, 'users', user.email!));
+        if (userDoc.exists()) {
+          navigate('/admin/dashboard');
+        }
       }
     });
     return () => unsubscribe();
@@ -32,9 +43,16 @@ export default function AdminLogin() {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+      const email = result.user.email;
       
-      if (result.user.email !== 'leonardkabo32@gmail.com') {
-        setError('Accès refusé. Cet espace est réservé à l\'administrateur.');
+      if (!email) throw new Error('No email found');
+
+      // Check for superadmin or team member
+      const isSuperAdmin = email === 'leonardkabo32@gmail.com';
+      const userDoc = await getDoc(doc(db, 'users', email));
+      
+      if (!isSuperAdmin && !userDoc.exists()) {
+        setError('Accès refusé. Vous n\'êtes pas autorisé à accéder à cet espace.');
         await auth.signOut();
       } else {
         navigate('/admin/dashboard');
@@ -78,7 +96,7 @@ export default function AdminLogin() {
             size="lg"
             className="w-full"
           >
-            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6 mr-3" />
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-6 h-6 mr-3" referrerPolicy="no-referrer" />
             <span>Se connecter avec Google</span>
           </Button>
         </div>
