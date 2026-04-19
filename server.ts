@@ -11,9 +11,22 @@ import nodemailer from 'nodemailer';
 import dotenv from 'dotenv';
 import multer from 'multer';
 import fs from 'fs';
+import { FedaPay, Transaction } from 'fedapay';
 
 // Load environment variables from .env file
 dotenv.config({ path: path.join(process.cwd(), '.env') });
+
+// Configure FedaPay
+const FEDAPAY_SK = process.env.FEDAPAY_SECRET_KEY;
+const FEDAPAY_ENV = process.env.FEDAPAY_ENVIRONMENT || 'sandbox';
+
+if (FEDAPAY_SK) {
+  FedaPay.setApiKey(FEDAPAY_SK);
+  FedaPay.setEnvironment(FEDAPAY_ENV);
+  console.log(`FedaPay initialized in ${FEDAPAY_ENV} mode.`);
+} else {
+  console.warn('FedaPay Secret Key not configured. Payment features will simulation mode.');
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -93,6 +106,87 @@ async function startServer() {
       res.json({ success: true, message: 'File deleted' });
     } else {
       res.status(404).json({ success: false, message: 'File not found' });
+    }
+  });
+
+  app.post('/api/fedapay/create-transaction', async (req, res) => {
+    const { amount, description, customer, callback_url } = req.body;
+
+    if (!FEDAPAY_SK) {
+      return res.status(503).json({ 
+        success: false, 
+        message: 'Le service de paiement n\'est pas encore configuré sur le serveur (FedaPay Key manquante).' 
+      });
+    }
+
+    try {
+      // Clean phone: remove all non-digits
+      const cleanPhone = customer.phone.replace(/\D/g, '');
+      
+      const transactionData: any = {
+        description: description || 'Vote Challenge',
+        amount: Math.round(amount), // Ensure integer
+        currency: { iso: 'XOF' },
+        callback_url: callback_url || 'https://google.com', // Safe fallback
+        customer: {
+          firstname: customer.firstname || 'Votant',
+          lastname: customer.lastname || 'Challenge',
+          email: customer.email || 'votant@challenge-kabo.bj',
+          phone_number: {
+            number: cleanPhone,
+            country: 'BJ'
+          }
+        }
+      };
+
+      console.log('FedaPay transaction attempt:', JSON.stringify(transactionData, null, 2));
+
+      const transaction = await Transaction.create(transactionData);
+
+      const token = await transaction.generateToken();
+      res.json({ 
+        success: true, 
+        token: token.token, 
+        url: token.url,
+        transaction_id: transaction.id 
+      });
+    } catch (error: any) {
+      console.error('FedaPay Transaction Error Details:', JSON.stringify(error, null, 2));
+      
+      let message = 'Erreur lors de l\'initialisation de la transaction FedaPay.';
+      if (error.errorMessage) {
+        message = error.errorMessage;
+        // Check if there are specific field errors
+        if (error.errors && Object.keys(error.errors).length > 0) {
+          const fieldErrors = Object.entries(error.errors)
+            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+            .join(' | ');
+          message += ` (${fieldErrors})`;
+        }
+      }
+      
+      res.status(400).json({ 
+        success: false, 
+        message: message,
+        details: error.errors
+      });
+    }
+  });
+
+  app.get('/api/fedapay/status/:id', async (req, res) => {
+    const { id } = req.params;
+    if (!FEDAPAY_SK) return res.status(503).json({ success: false });
+
+    try {
+      const transaction = await Transaction.retrieve(parseInt(id));
+      res.json({ 
+        success: true, 
+        status: transaction.status, // approved, declined, canceled, pending
+        transaction: transaction 
+      });
+    } catch (error) {
+      console.error('FedaPay Status Error:', error);
+      res.status(500).json({ success: false });
     }
   });
 

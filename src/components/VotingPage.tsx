@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Check, Info, AlertTriangle, BarChart3, Users, Trophy, ChevronRight, Vote, Trash2, Clock, CreditCard, Loader2, Phone } from 'lucide-react';
 import { useSiteData } from '../hooks/useSiteData';
 import { db } from '../firebase';
-import { doc, updateDoc, increment, collection, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { cn } from '../lib/utils';
 import Button from './ui/Button';
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell, PieChart, Pie } from 'recharts';
@@ -21,6 +21,7 @@ export default function VotingPage() {
   const [voterPhone, setVoterPhone] = useState('');
   const [selectedProvider, setSelectedProvider] = useState<'mtn' | 'moov' | 'celtiis' | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
+  const [transactionId, setTransactionId] = useState<string | null>(null);
   const [hasVoted, setHasVoted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [votingStep, setVotingStep] = useState<'none' | 'selecting' | 'identity' | 'payment' | 'processing'>('none');
@@ -59,6 +60,70 @@ export default function VotingPage() {
 
   const userHasVoted = hasVoted || (activeSession && !activeSession.isPaid && alreadyVotedEvents.includes(activeSession.id));
 
+  // Check for pending payment on mount
+  useEffect(() => {
+    const checkPendingPayment = async () => {
+      const pendingData = localStorage.getItem('pending_vote');
+      if (!pendingData) return;
+
+      try {
+        const { sessionId, candidateIds, voterName, voterPhone, transactionId: tid } = JSON.parse(pendingData);
+        
+        // Check transaction status on backend
+        const response = await fetch(`/api/fedapay/status/${tid}`);
+        const data = await response.json();
+
+        if (data.success && data.status === 'approved') {
+          // Finalize vote
+          const sessionRef = doc(db, 'voting', sessionId);
+          const ballotRef = doc(collection(db, 'voting', sessionId, 'ballots'));
+
+          await setDoc(ballotRef, {
+            voterName,
+            voterPhone,
+            candidateIds,
+            timestamp: serverTimestamp(),
+            isPaid: true,
+            amount: data.transaction.amount,
+            provider: data.transaction.mode || 'FedaPay',
+            paymentStatus: 'paid',
+            transactionId: tid
+          });
+
+          // Update Session Stats
+          // We need current session state or fetch it
+          const sessionDoc = await getDoc(sessionRef);
+          if (sessionDoc.exists()) {
+             const sData = sessionDoc.data();
+             const updatedCandidates = sData.candidates.map((c: any) => {
+               if (candidateIds.includes(c.id)) {
+                 return { ...c, voteCount: (c.voteCount || 0) + 1 };
+               }
+               return c;
+             });
+             await updateDoc(sessionRef, { 
+               candidates: updatedCandidates,
+               voterCount: increment(1)
+             });
+          }
+
+          setHasVoted(true);
+          setVotingStep('none');
+        } else if (data.status === 'declined' || data.status === 'canceled') {
+          console.warn('Payment not approved:', data.status);
+        }
+      } catch (err) {
+        console.error('Error checking pending payment:', err);
+      } finally {
+        localStorage.removeItem('pending_vote');
+        // Clean URL params if any (e.g. from FedaPay callback)
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+    };
+
+    checkPendingPayment();
+  }, []);
+
   const handleToggleCandidate = (candidateId: string) => {
     if (!activeSession) return;
     if (selectedCandidates.includes(candidateId)) {
@@ -85,49 +150,41 @@ export default function VotingPage() {
       }
       setSubmitting(true);
       try {
-        setPaymentStatus('pending');
-        setVotingStep('processing');
-        // Simulate waiting for user confirmation on their phone
-        await new Promise(resolve => setTimeout(resolve, 5000));
-        setPaymentStatus('success');
-
-        const sessionRef = doc(db, 'voting', activeSession.id);
-        const ballotRef = doc(collection(db, 'voting', activeSession.id, 'ballots'));
-
-        // 1. Create Ballot
-        await setDoc(ballotRef, {
-          voterName,
-          voterPhone,
-          candidateIds: selectedCandidates,
-          timestamp: serverTimestamp(),
-          isPaid: true,
-          amount: activeSession.pricePerVote,
-          provider: selectedProvider,
-          paymentStatus: 'paid'
+        // Create actual FedaPay transaction via backend
+        const response = await fetch('/api/fedapay/create-transaction', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amount: activeSession.pricePerVote,
+            description: `Vote pour ${selectedCandidates.length} candidat(s) - ${activeSession.title}`,
+            customer: {
+              firstname: voterName,
+              phone: voterPhone.replace(/\D+/g, '') // Clean phone number to digits only
+            },
+            callback_url: window.location.origin + window.location.pathname
+          })
         });
 
-        // 2. Update Session Stats
-        const updatedCandidates = activeSession.candidates.map((c: any) => {
-          if (selectedCandidates.includes(c.id)) {
-            return { ...c, voteCount: (c.voteCount || 0) + 1 };
-          }
-          return c;
-        });
+        const data = await response.json();
 
-        await updateDoc(sessionRef, { 
-          candidates: updatedCandidates,
-          voterCount: increment(1)
-        });
+        if (data.success) {
+          // Store attempt locally to resume after redirect
+          localStorage.setItem('pending_vote', JSON.stringify({
+            sessionId: activeSession.id,
+            candidateIds: selectedCandidates,
+            voterName,
+            voterPhone,
+            transactionId: data.transaction_id
+          }));
 
-        setHasVoted(true);
-        setVotingStep('none');
-        setSelectedCandidates([]);
-        setPaymentStatus('idle');
-        setSelectedProvider(null);
+          // Redirect to checkout
+          window.location.href = data.url;
+        } else {
+          alert(data.message || "Erreur lors de l'initialisation du paiement.");
+        }
       } catch (error) {
-        console.error('Error submitting votes:', error);
-        setPaymentStatus('failed');
-        setVotingStep('payment');
+        console.error('Error initiating payment:', error);
+        alert("Une erreur est survenue lors de la connexion au service de paiement.");
       } finally {
         setSubmitting(false);
       }
