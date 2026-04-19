@@ -43,7 +43,7 @@ export default function AdminDashboard() {
   const [user, setUser] = useState<any>(null);
   const [adminData, setAdminData] = useState<any>(null);
   const [teamUsers, setTeamUsers] = useState<any[]>([]);
-  const [newUser, setNewUser] = useState<any>({ email: '', displayName: '', role: 'moderator', permissions: [] });
+  const [newUser, setNewUser] = useState<any>({ email: '', displayName: '', role: 'moderator', isAdmin: false, permissions: [] });
   const [editingUserEmail, setEditingUserEmail] = useState<string | null>(null);
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [appointments, setAppointments] = useState<any[]>([]);
@@ -195,23 +195,24 @@ export default function AdminDashboard() {
       }
 
       try {
-        const userDoc = await getDoc(doc(db, 'users', user.email!));
+        const email = user.email!.toLowerCase();
+        const userDoc = await getDoc(doc(db, 'users', email));
         if (userDoc.exists()) {
           const userData = userDoc.data();
           setUser(user);
           setAdminData(userData);
           console.log('User logged in with profile:', userData);
-        } else if (user.email === 'leonardkabo32@gmail.com') {
+        } else if (email === 'leonardkabo32@gmail.com') {
           // Auto-promote owner if record missing
           const superAdminData = {
-            email: user.email,
+            email: email,
             displayName: user.displayName || 'Léonard KABO',
             role: 'superadmin',
             isAdmin: true,
             permissions: ['all'],
             createdAt: Date.now()
           };
-          await setDoc(doc(db, 'users', user.email!), superAdminData);
+          await setDoc(doc(db, 'users', email), superAdminData);
           setUser(user);
           setAdminData(superAdminData);
           console.log('Owner auto-promoted to superadmin');
@@ -332,7 +333,8 @@ export default function AdminDashboard() {
         await updateDoc(doc(db, 'users', editingUserEmail.toLowerCase()), {
           displayName: newUser.displayName,
           permissions: newUser.permissions,
-          role: newUser.role
+          role: newUser.role,
+          isAdmin: newUser.isAdmin || false
         });
         setShowSuccess('Utilisateur mis à jour !');
       } else {
@@ -344,7 +346,7 @@ export default function AdminDashboard() {
         });
         setShowSuccess('Utilisateur ajouté à l\'équipe !');
       }
-      setNewUser({ email: '', displayName: '', role: 'moderator', permissions: [] });
+      setNewUser({ email: '', displayName: '', role: 'moderator', isAdmin: false, permissions: [] });
       setEditingUserEmail(null);
       setIsAddingUser(false);
     } catch (e) { handleFirestoreError(e, editingUserEmail ? OperationType.UPDATE : OperationType.WRITE, 'users'); }
@@ -2109,7 +2111,7 @@ export default function AdminDashboard() {
                     <p className="text-gray-500 font-medium italic">Accréditez vos collaborateurs et gérez leurs permissions.</p>
                   </div>
                   <Button onClick={() => {
-                    setNewUser({ email: '', displayName: '', role: 'moderator', permissions: [] });
+                    setNewUser({ email: '', displayName: '', role: 'moderator', isAdmin: false, permissions: [] });
                     setEditingUserEmail(null);
                     setIsAddingUser(true);
                   }} icon={Plus} size="sm">Ajouter un Membre</Button>
@@ -2121,28 +2123,55 @@ export default function AdminDashboard() {
                       <h3 className="text-xl font-bold text-gray-900">{editingUserEmail ? 'Modifier les accès' : 'Nouvel Utilisateur'}</h3>
                       {editingUserEmail && <span className="text-sm font-mono text-blue-600">{editingUserEmail}</span>}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <div className="space-y-2">
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
-                        <input
-                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
-                          value={newUser.displayName}
-                          onChange={(e) => setNewUser({...newUser, displayName: e.target.value})}
-                          placeholder="ex: Jean Dupont"
-                        />
-                      </div>
-                      <div className={cn("space-y-2", editingUserEmail && "opacity-50 pointer-events-none")}>
-                        <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Adresse Email (Google)</label>
-                        <input
-                          type="email"
-                          className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
-                          value={newUser.email}
-                          onChange={(e) => setNewUser({...newUser, email: e.target.value})}
-                          placeholder="jean.dupont@gmail.com"
-                          readOnly={!!editingUserEmail}
-                        />
-                      </div>
-                    </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Nom Complet</label>
+          <input
+            className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+            value={newUser.displayName}
+            onChange={(e) => setNewUser({...newUser, displayName: e.target.value})}
+            placeholder="ex: Jean Dupont"
+          />
+        </div>
+        <div className={cn("space-y-2", editingUserEmail && "opacity-50 pointer-events-none")}>
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Adresse Email (Google)</label>
+          <input
+            type="email"
+            className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+            value={newUser.email}
+            onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+            placeholder="jean.dupont@gmail.com"
+            readOnly={!!editingUserEmail}
+          />
+        </div>
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Rôle</label>
+          <select
+            className="w-full bg-gray-50 border-2 border-transparent focus:border-blue-600/20 focus:bg-white rounded-2xl py-4 px-6 outline-none transition-all"
+            value={newUser.role}
+            onChange={(e) => setNewUser({...newUser, role: e.target.value})}
+          >
+            <option value="moderator">Modérateur</option>
+            <option value="superadmin">Super Admin</option>
+          </select>
+        </div>
+        <div className="space-y-2">
+          <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Privilèges Admin</label>
+          <div className="flex items-center h-[56px] space-x-3 bg-gray-50 p-4 rounded-2xl">
+            <button
+              type="button"
+              onClick={() => setNewUser({...newUser, isAdmin: !newUser.isAdmin})}
+              className={`w-12 h-6 rounded-full transition-all relative ${newUser.isAdmin ? 'bg-amber-500' : 'bg-gray-200'}`}
+            >
+              <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${newUser.isAdmin ? 'left-7' : 'left-1'}`} />
+            </button>
+            <span className="text-sm font-bold text-gray-600">{newUser.isAdmin ? 'Administrateur' : 'Simple Membre'}</span>
+          </div>
+        </div>
+      </div>
                     
                     <div className="space-y-4">
                       <label className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Permissions d'accès</label>
@@ -2235,6 +2264,7 @@ export default function AdminDashboard() {
                               email: tUser.email,
                               displayName: tUser.displayName,
                               role: tUser.role,
+                              isAdmin: tUser.isAdmin || false,
                               permissions: tUser.permissions || []
                             });
                             setEditingUserEmail(tUser.email);
