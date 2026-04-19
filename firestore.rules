@@ -101,14 +101,31 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.token.email.toLower())).data;
+    }
+
+    function isSuperAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.email.toLower() == "leonardkabo32@gmail.com" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.token.email.toLower())) && 
+         (getUserData().role == "superadmin" || getUserData().isAdmin == true))
+      );
+    }
+
+    function hasPermission(permission) {
+      return isAuthenticated() && (
+        isSuperAdmin() ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.token.email.toLower())) && (
+          "all" in getUserData().get('permissions', []) ||
+          permission in getUserData().get('permissions', [])
+        ))
+      );
+    }
+
+    // Default isAdmin helper kept for compatibility
     function isAdmin() {
-      return isAuthenticated() &&
-        (
-          (exists(/databases/$(database)/documents/users/$(request.auth.token.email)) && 
-           get(/databases/$(database)/documents/users/$(request.auth.token.email)).data.isAdmin == true) ||
-          (request.auth.token.email == "leonardkabo32@gmail.com" && 
-           (request.auth.token.email_verified == true || !('email_verified' in request.auth.token)))
-        );
+      return isSuperAdmin();
     }
 
     function isValidEmail(email) {
@@ -131,27 +148,27 @@ service cloud.firestore {
     // Publicly readable, admin writable
     match /settings/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if hasPermission('settings');
     }
 
     match /sections/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if hasPermission('settings');
     }
 
     match /services/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if hasPermission('services');
     }
 
     match /portfolio/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if hasPermission('portfolio');
     }
 
     match /news/{docId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if hasPermission('news');
     }
 
     match /voting/{docId} {
@@ -159,12 +176,12 @@ service cloud.firestore {
       allow update: if (
         // Public Vote Action: Only voterCount and candidates can be updated during active vote
         (resource.data.get('active', false) == true && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['candidates', 'voterCount'])) ||
-        isAdmin()
+        hasPermission('voting')
       );
-      allow create, delete: if isAdmin();
+      allow create, delete: if hasPermission('voting');
 
       match /ballots/{ballotId} {
-        allow read: if isAdmin();
+        allow read: if hasPermission('voting');
         allow create: if (
           get(/databases/$(database)/documents/voting/$(docId)).data.get('active', false) == true &&
           request.resource.data.voterName is string &&
@@ -173,7 +190,7 @@ service cloud.firestore {
           request.resource.data.timestamp in [request.time, null] &&
           (request.resource.data.get('isPaid', false) == false || (request.resource.data.paymentStatus == 'paid' && request.resource.data.amount > 0))
         );
-        allow write: if isAdmin();
+        allow write: if hasPermission('voting');
       }
     }
 
@@ -186,36 +203,36 @@ service cloud.firestore {
       allow create: if request.resource.data.name is string &&
                       isValidEmail(request.resource.data.email) &&
                       request.resource.data.status == 'pending';
-      allow read, update, delete: if isAdmin();
+      allow read, update, delete: if hasPermission('appointments');
     }
 
     match /quotes/{docId} {
       allow create: if request.resource.data.name is string &&
                       isValidEmail(request.resource.data.email) &&
                       request.resource.data.status == 'pending';
-      allow read, update, delete: if isAdmin();
+      allow read, update, delete: if hasPermission('quotes');
     }
 
     match /contacts/{docId} {
       allow create: if request.resource.data.name is string &&
                       isValidEmail(request.resource.data.email) &&
                       request.resource.data.status == 'unread';
-      allow read, update, delete: if isAdmin();
+      allow read, update, delete: if hasPermission('contacts');
     }
 
     match /users/{userEmail} {
-      allow read: if isAuthenticated() && (request.auth.token.email == userEmail || isAdmin());
-      allow write: if isAdmin();
+      allow read: if isAuthenticated() && (request.auth.token.email.toLower() == userEmail.toLower() || hasPermission('settings'));
+      allow write: if isSuperAdmin();
     }
 
     match /analytics/realtime/sessions/{sessionId} {
       allow create, update, get: if true;
-      allow read, delete: if isAdmin();
+      allow read, delete: if hasPermission('audience');
     }
 
     match /analytics/history/days/{date} {
       allow create, update, get: if true;
-      allow read, delete: if isAdmin();
+      allow read, delete: if hasPermission('audience');
     }
   }
 }

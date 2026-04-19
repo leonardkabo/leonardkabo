@@ -230,65 +230,69 @@ export default function AdminDashboard() {
   }, [navigate]);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !adminData) return;
+
+    setLoading(false);
 
     // Real-time listeners
-    const unsubAppointments = onSnapshot(query(collection(db, 'appointments'), orderBy('createdAt', 'desc')), (snapshot) => {
+    const unsubAppointments = hasPermission('appointments') ? onSnapshot(query(collection(db, 'appointments'), orderBy('createdAt', 'desc')), (snapshot) => {
       setAppointments(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       setLoading(false);
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'appointments'));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'appointments')) : () => {};
 
-    const unsubQuotes = onSnapshot(query(collection(db, 'quotes'), orderBy('createdAt', 'desc')), (snapshot) => {
+    const unsubQuotes = hasPermission('quotes') ? onSnapshot(query(collection(db, 'quotes'), orderBy('createdAt', 'desc')), (snapshot) => {
       setQuotes(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'quotes'));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'quotes')) : () => {};
 
-    const unsubContacts = onSnapshot(query(collection(db, 'contacts'), orderBy('createdAt', 'desc')), (snapshot) => {
+    const unsubContacts = hasPermission('contacts') ? onSnapshot(query(collection(db, 'contacts'), orderBy('createdAt', 'desc')), (snapshot) => {
       setContacts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'contacts'));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'contacts')) : () => {};
 
-    const unsubServices = onSnapshot(query(collection(db, 'services'), orderBy('priority', 'asc')), (snapshot) => {
+    const unsubServices = hasPermission('services') || hasPermission('settings') ? onSnapshot(query(collection(db, 'services'), orderBy('priority', 'asc')), (snapshot) => {
       setServices(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'services'));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'services')) : () => {};
 
-    const unsubPortfolio = onSnapshot(collection(db, 'portfolio'), (snapshot) => {
+    const unsubPortfolio = hasPermission('portfolio') || hasPermission('settings') ? onSnapshot(collection(db, 'portfolio'), (snapshot) => {
       setPortfolio(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'portfolio'));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'portfolio')) : () => {};
 
-    const unsubNews = onSnapshot(query(collection(db, 'news'), orderBy('createdAt', 'desc')), (snapshot) => {
+    const unsubNews = hasPermission('news') || hasPermission('settings') ? onSnapshot(query(collection(db, 'news'), orderBy('createdAt', 'desc')), (snapshot) => {
       setNews(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'news'));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'news')) : () => {};
 
-    const unsubUsers = onSnapshot(query(collection(db, 'users'), orderBy('createdAt', 'desc')), (snapshot) => {
+    const unsubUsers = hasPermission('settings') ? onSnapshot(query(collection(db, 'users'), orderBy('createdAt', 'desc')), (snapshot) => {
       setTeamUsers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'users'));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'users')) : () => {};
 
     // Fetch single docs
-    onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
+    const unsubSettings = hasPermission('settings') ? onSnapshot(doc(db, 'settings', 'site'), (docSnap) => {
       if (docSnap.exists()) setSiteSettings(docSnap.data());
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/site'));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'settings/site')) : () => {};
 
-    onSnapshot(doc(db, 'sections', 'hero'), (docSnap) => {
+    const unsubHero = hasPermission('settings') ? onSnapshot(doc(db, 'sections', 'hero'), (docSnap) => {
       if (docSnap.exists()) setHeroContent(docSnap.data());
-    }, (error) => handleFirestoreError(error, OperationType.GET, 'sections/hero'));
+    }, (error) => handleFirestoreError(error, OperationType.GET, 'sections/hero')) : () => {};
 
-    const unsubVoting = onSnapshot(query(collection(db, 'voting'), orderBy('createdAt', 'desc')), (snapshot) => {
+    const unsubVoting = hasPermission('voting') || hasPermission('settings') ? onSnapshot(query(collection(db, 'voting'), orderBy('createdAt', 'desc')), (snapshot) => {
       setVotingSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'voting'));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'voting')) : () => {};
 
-    const unsubRealtime = onSnapshot(collection(db, 'analytics', 'realtime', 'sessions'), (snapshot) => {
+    const unsubRealtime = hasPermission('audience') ? onSnapshot(collection(db, 'analytics', 'realtime', 'sessions'), (snapshot) => {
       setRealtimeSessions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'analytics/realtime/sessions'));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'analytics/realtime/sessions')) : () => {};
 
-    const unsubHistory = onSnapshot(query(collection(db, 'analytics', 'history', 'days'), orderBy('date', 'desc')), (snapshot) => {
+    const unsubHistory = hasPermission('audience') ? onSnapshot(query(collection(db, 'analytics', 'history', 'days'), orderBy('date', 'desc')), (snapshot) => {
       setVisitHistory(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    }, (error) => handleFirestoreError(error, OperationType.LIST, 'analytics/history/days'));
+    }, (error) => handleFirestoreError(error, OperationType.LIST, 'analytics/history/days')) : () => {};
 
-    getDoc(doc(db, 'settings', 'mapConfig')).then((docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setMapConfig({ lat: data.mapLat, lng: data.mapLng });
-      }
-    });
+    if (hasPermission('settings')) {
+      getDoc(doc(db, 'settings', 'mapConfig')).then((docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setMapConfig({ lat: data.mapLat, lng: data.mapLng });
+        }
+      });
+    }
 
     return () => {
       unsubAppointments();
@@ -301,8 +305,10 @@ export default function AdminDashboard() {
       unsubVoting();
       unsubRealtime();
       unsubHistory();
+      unsubSettings();
+      unsubHero();
     };
-  }, [user]);
+  }, [user, adminData]);
 
   const handleSaveSiteSettings = async () => {
     setSaving(true);
