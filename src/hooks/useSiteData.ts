@@ -124,6 +124,8 @@ export interface VotingSession {
   rules: string;
   active: boolean;
   maxVotes: number;
+  isPaid?: boolean;
+  pricePerVote?: number;
   endDate: string;
   candidates: Candidate[];
   voterCount: number;

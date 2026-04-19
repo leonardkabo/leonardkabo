@@ -318,11 +318,12 @@ export default function AdminDashboard() {
       alert("Veuillez remplir le nom et l'email.");
       return;
     }
+    const email = newUser.email.toLowerCase().trim();
     setSaving(true);
     try {
       if (editingUserEmail) {
         // Update
-        await updateDoc(doc(db, 'users', editingUserEmail), {
+        await updateDoc(doc(db, 'users', editingUserEmail.toLowerCase()), {
           displayName: newUser.displayName,
           permissions: newUser.permissions,
           role: newUser.role
@@ -330,8 +331,9 @@ export default function AdminDashboard() {
         setShowSuccess('Utilisateur mis à jour !');
       } else {
         // Add
-        await setDoc(doc(db, 'users', newUser.email), {
+        await setDoc(doc(db, 'users', email), {
           ...newUser,
+          email: email,
           createdAt: Date.now()
         });
         setShowSuccess('Utilisateur ajouté à l\'équipe !');
@@ -392,6 +394,8 @@ export default function AdminDashboard() {
         rules: "1. Une voix par personne.\n2. Sélection libre.",
         active: false,
         maxVotes: 1,
+        isPaid: false,
+        pricePerVote: 100,
         endDate: new Date(Date.now() + 7 * 864 * 1000 * 100).toISOString(),
         candidates: [],
         voterCount: 0,

@@ -43,7 +43,7 @@ export default function AdminLogin() {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
-      const email = result.user.email;
+      const email = result.user.email?.toLowerCase();
       
       if (!email) throw new Error('No email found');
 

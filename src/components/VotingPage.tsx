@@ -5,7 +5,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, Info, AlertTriangle, BarChart3, Users, Trophy, ChevronRight, Vote, Trash2, Clock, CreditCard, Loader2, Phone } from 'lucide-react';
+import { Check, Info, AlertTriangle, BarChart3, Users, Trophy, ChevronRight, ChevronLeft, Vote, Trash2, Clock, CreditCard, Loader2, Phone } from 'lucide-react';
 import { useSiteData } from '../hooks/useSiteData';
 import { db } from '../firebase';
 import { doc, updateDoc, increment, collection, setDoc, serverTimestamp, getDoc } from 'firebase/firestore';
@@ -553,7 +553,7 @@ export default function VotingPage() {
               className="max-w-6xl mx-auto"
             >
               <div className="flex items-center justify-between mb-12">
-                <Button variant="ghost" icon={() => <ChevronRight className="rotate-180" />} onClick={() => setVotingStep('none')}>Retour aux résultats</Button>
+                <Button variant="ghost" icon={ChevronLeft} onClick={() => setVotingStep('none')}>Retour aux résultats</Button>
                 <div className="text-center">
                    <h2 className="text-3xl font-black text-gray-900">Choisissez vos candidats</h2>
                    <p className="text-gray-500 font-medium">Sélectionnez jusqu'à {activeSession.maxVotes} candidat(s)</p>
@@ -618,7 +618,7 @@ export default function VotingPage() {
               className="max-w-2xl mx-auto"
             >
               <div className="bg-white p-16 rounded-[4rem] shadow-2xl shadow-blue-900/10 text-center border border-gray-100">
-                <Button variant="ghost" className="mb-6" icon={() => <ChevronRight className="rotate-180" />} onClick={() => setVotingStep('selecting')}>Retour à la sélection</Button>
+                <Button variant="ghost" className="mb-6" icon={ChevronLeft} onClick={() => setVotingStep('selecting')}>Retour à la sélection</Button>
                 <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
                   <Users size={40} />
                 </div>
