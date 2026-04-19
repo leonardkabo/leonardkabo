@@ -102,13 +102,13 @@ service cloud.firestore {
     }
 
     function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.token.email.toLower())).data;
+      return get(/databases/$(database)/documents/users/$(request.auth.token.email.lower())).data;
     }
 
     function isSuperAdmin() {
       return isAuthenticated() && (
-        request.auth.token.email.toLower() == "leonardkabo32@gmail.com" ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.token.email.toLower())) && 
+        request.auth.token.email.lower() == "leonardkabo32@gmail.com" ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.token.email.lower())) && 
          (getUserData().role == "superadmin" || getUserData().isAdmin == true))
       );
     }
@@ -116,7 +116,7 @@ service cloud.firestore {
     function hasPermission(permission) {
       return isAuthenticated() && (
         isSuperAdmin() ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.token.email.toLower())) && (
+        (exists(/databases/$(database)/documents/users/$(request.auth.token.email.lower())) && (
           "all" in getUserData().get('permissions', []) ||
           permission in getUserData().get('permissions', [])
         ))
@@ -221,7 +221,7 @@ service cloud.firestore {
     }
 
     match /users/{userEmail} {
-      allow read: if isAuthenticated() && (request.auth.token.email.toLower() == userEmail.toLower() || hasPermission('settings'));
+      allow read: if isAuthenticated() && (request.auth.token.email.lower() == userEmail.lower() || hasPermission('settings'));
       allow write: if isSuperAdmin();
     }
 

@@ -21,13 +21,14 @@ export default function AdminLogin() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        if (user.email === 'leonardkabo32@gmail.com') {
+        const email = user.email?.toLowerCase();
+        if (email === 'leonardkabo32@gmail.com') {
           navigate('/admin/dashboard');
           return;
         }
         
         // Check if user is in team
-        const userDoc = await getDoc(doc(db, 'users', user.email!));
+        const userDoc = await getDoc(doc(db, 'users', email!));
         if (userDoc.exists()) {
           navigate('/admin/dashboard');
         }
@@ -57,9 +58,15 @@ export default function AdminLogin() {
       } else {
         navigate('/admin/dashboard');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Login error:', err);
-      setError('Une erreur est survenue lors de la connexion.');
+      if (err.code === 'auth/popup-closed-by-user') {
+        setError('La fenêtre de connexion a été fermée avant la fin du processus.');
+      } else if (err.code === 'auth/cancelled-by-user') {
+        setError('Connexion annulée.');
+      } else {
+        setError('Une erreur est survenue lors de la connexion.');
+      }
     } finally {
       setLoading(false);
     }
