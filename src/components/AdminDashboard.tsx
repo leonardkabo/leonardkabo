@@ -4,7 +4,7 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, Eye, Upload, Loader2, Vote, Info, Activity, Shield } from 'lucide-react';
+import { Calendar, FileText, LogOut, Trash2, Check, X, Clock, User, Mail, Phone, MessageSquare, Settings, MapPin, Save, ChevronLeft, ChevronRight, Layout, Briefcase, Image as ImageIcon, Plus, Edit2, Globe, Search, TrendingUp, Users, DollarSign, CreditCard, Eye, Upload, Loader2, Vote, Info, Activity, Shield } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
 import { auth, db, storage } from '../firebase';
@@ -2811,6 +2811,68 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUp
                       <input type="number" className="w-full bg-gray-50 rounded-xl p-4 font-bold" value={session.maxVotes} onChange={e => setSession({...session, maxVotes: parseInt(e.target.value)})} />
                     </div>
                   </div>
+
+                  {/* Paid Mode Configuration */}
+                  <div className="pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between p-4 bg-emerald-50 rounded-2xl mb-4">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center">
+                          <DollarSign size={20} />
+                        </div>
+                        <div>
+                          <span className="font-bold text-emerald-900">Mode Challenge Payant</span>
+                          <p className="text-[10px] text-emerald-600 font-medium">Les votes coûtent une somme fixe</p>
+                        </div>
+                      </div>
+                      <button onClick={() => setSession({...session, isPaid: !session.isPaid})} className={cn("w-12 h-6 rounded-full relative transition-colors", session.isPaid ? "bg-emerald-600" : "bg-gray-200")}>
+                        <div className={cn("absolute top-1 w-4 h-4 bg-white rounded-full transition-all", session.isPaid ? "left-7" : "left-1")} />
+                      </button>
+                    </div>
+
+                    {session.isPaid && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} className="space-y-4 p-4 bg-emerald-50/30 rounded-2xl border border-emerald-100">
+                         <div className="space-y-2">
+                           <label className="text-[10px] font-black uppercase text-emerald-700 tracking-widest">Prix par Vote (FCFA)</label>
+                           <input 
+                             type="number" 
+                             className="w-full bg-white rounded-xl p-4 font-bold border-2 border-emerald-100 focus:border-emerald-500 outline-none" 
+                             value={session.pricePerVote || 0} 
+                             onChange={e => setSession({...session, pricePerVote: parseInt(e.target.value)})} 
+                           />
+                         </div>
+                         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black uppercase text-gray-400">N° Marchand Moov</label>
+                              <input 
+                                className="w-full bg-white rounded-lg p-2 text-sm border border-gray-100 font-mono" 
+                                placeholder="ex: 95..." 
+                                value={session.paymentConfig?.moovNumber || ""} 
+                                onChange={e => setSession({...session, paymentConfig: {...(session.paymentConfig || {}), moovNumber: e.target.value}})} 
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black uppercase text-gray-400">N° Marchand MTN</label>
+                              <input 
+                                className="w-full bg-white rounded-lg p-2 text-sm border border-gray-100 font-mono" 
+                                placeholder="ex: 61..." 
+                                value={session.paymentConfig?.mtnNumber || ""} 
+                                onChange={e => setSession({...session, paymentConfig: {...(session.paymentConfig || {}), mtnNumber: e.target.value}})} 
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[8px] font-black uppercase text-gray-400">N° Marchand Celtiis</label>
+                              <input 
+                                className="w-full bg-white rounded-lg p-2 text-sm border border-gray-100 font-mono" 
+                                placeholder="ex: 40..." 
+                                value={session.paymentConfig?.celtiisNumber || ""} 
+                                onChange={e => setSession({...session, paymentConfig: {...(session.paymentConfig || {}), celtiisNumber: e.target.value}})} 
+                              />
+                            </div>
+                         </div>
+                         <p className="text-[10px] text-gray-400 italic">Note: Ces numéros seront affichés au votant pour le choix du réseau.</p>
+                      </motion.div>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-6">
                   <div className="space-y-2">
@@ -2821,6 +2883,24 @@ function VotingSessionCard({ session: initialSession, onSave, onDelete, onFileUp
                     <label className="text-xs font-bold uppercase text-gray-400">Règlement</label>
                     <textarea className="w-full bg-gray-50 rounded-xl p-4 font-bold min-h-[150px]" value={session.rules} onChange={e => setSession({...session, rules: e.target.value})} />
                   </div>
+                </div>
+                <div className="lg:col-span-2 flex justify-end pt-8 border-t border-gray-100">
+                  <Button 
+                    className="px-12 h-16 rounded-[2rem] shadow-xl shadow-blue-600/20"
+                    icon={Save}
+                    onClick={async () => {
+                      try {
+                        const sessionRef = doc(db, 'voting', session.id);
+                        await setDoc(sessionRef, session);
+                        alert("Configuration mise à jour avec succès !");
+                      } catch (e) {
+                        console.error("Error saving session config:", e);
+                        alert("Erreur lors de la sauvegarde.");
+                      }
+                    }}
+                  >
+                    Sauvegarder les modifications
+                  </Button>
                 </div>
               </div>
             )}

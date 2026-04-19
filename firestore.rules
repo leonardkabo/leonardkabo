@@ -120,7 +120,8 @@ service cloud.firestore {
       return data.title is string && data.title.size() <= 500 &&
              data.description is string && data.description.size() <= 10000 &&
              data.active is bool &&
-             data.candidates is list;
+             data.candidates is list &&
+             (data.get('isPaid', false) == false || (data.pricePerVote is number && data.paymentConfig is map));
     }
 
     // ===============================================================
@@ -169,7 +170,8 @@ service cloud.firestore {
           request.resource.data.voterName is string &&
           request.resource.data.voterPhone is string &&
           request.resource.data.candidateIds is list &&
-          request.resource.data.timestamp in [request.time, null]
+          request.resource.data.timestamp in [request.time, null] &&
+          (request.resource.data.get('isPaid', false) == false || (request.resource.data.paymentStatus == 'paid' && request.resource.data.amount > 0))
         );
         allow write: if isAdmin();
       }

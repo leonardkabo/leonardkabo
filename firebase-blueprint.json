@@ -161,13 +161,23 @@
     },
     "VotingEvent": {
       "title": "Voting Event",
-      "description": "Configuration and candidates for a voting event",
+      "description": "Configuration and candidates for a voting event (Challenges can be paid)",
       "type": "object",
       "properties": {
         "title": { "type": "string" },
         "description": { "type": "string" },
         "rules": { "type": "string" },
         "active": { "type": "boolean" },
+        "isPaid": { "type": "boolean", "description": "Whether votes require payment" },
+        "pricePerVote": { "type": "number", "description": "Cost per vote in local currency" },
+        "paymentConfig": {
+          "type": "object",
+          "properties": {
+            "mtnNumber": { "type": "string" },
+            "moovNumber": { "type": "string" },
+            "celtiisNumber": { "type": "string" }
+          }
+        },
         "maxVotes": { "type": "number", "description": "Number of candidates a user can select" },
         "candidates": {
           "type": "array",

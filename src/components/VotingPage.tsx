@@ -5,7 +5,7 @@
 
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Check, Info, AlertTriangle, BarChart3, Users, Trophy, ChevronRight, Vote, Trash2, Clock } from 'lucide-react';
+import { Check, Info, AlertTriangle, BarChart3, Users, Trophy, ChevronRight, Vote, Trash2, Clock, CreditCard, Loader2, Phone } from 'lucide-react';
 import { useSiteData } from '../hooks/useSiteData';
 import { db } from '../firebase';
 import { doc, updateDoc, increment, collection, setDoc, serverTimestamp } from 'firebase/firestore';
@@ -19,9 +19,11 @@ export default function VotingPage() {
   const [selectedCandidates, setSelectedCandidates] = useState<string[]>([]);
   const [voterName, setVoterName] = useState('');
   const [voterPhone, setVoterPhone] = useState('');
+  const [selectedProvider, setSelectedProvider] = useState<'mtn' | 'moov' | 'celtiis' | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<'idle' | 'pending' | 'success' | 'failed'>('idle');
   const [hasVoted, setHasVoted] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [votingStep, setVotingStep] = useState<'none' | 'selecting' | 'identity'>('none');
+  const [votingStep, setVotingStep] = useState<'none' | 'selecting' | 'identity' | 'payment' | 'processing'>('none');
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export default function VotingPage() {
     return data ? JSON.parse(data) : [];
   }, []);
 
-  const userHasVoted = hasVoted || (activeSession && alreadyVotedEvents.includes(activeSession.id));
+  const userHasVoted = hasVoted || (activeSession && !activeSession.isPaid && alreadyVotedEvents.includes(activeSession.id));
 
   const handleToggleCandidate = (candidateId: string) => {
     if (!activeSession) return;
@@ -70,9 +72,23 @@ export default function VotingPage() {
 
   const handleSubmitVotes = async () => {
     if (!activeSession || selectedCandidates.length === 0 || !voterName.trim() || !voterPhone.trim()) return;
+
+    if (activeSession.isPaid && votingStep !== 'processing') {
+      setVotingStep('payment');
+      return;
+    }
     
     setSubmitting(true);
     try {
+      // Simulate Payment Processing if paid
+      if (activeSession.isPaid) {
+        setPaymentStatus('pending');
+        setVotingStep('processing');
+        // Simulate waiting for user confirmation on their phone
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        setPaymentStatus('success');
+      }
+
       const sessionRef = doc(db, 'voting', activeSession.id);
       const ballotRef = doc(collection(db, 'voting', activeSession.id, 'ballots'));
 
@@ -81,11 +97,15 @@ export default function VotingPage() {
         voterName,
         voterPhone,
         candidateIds: selectedCandidates,
-        timestamp: serverTimestamp()
+        timestamp: serverTimestamp(),
+        isPaid: activeSession.isPaid || false,
+        amount: activeSession.isPaid ? activeSession.pricePerVote : 0,
+        provider: selectedProvider,
+        paymentStatus: activeSession.isPaid ? 'paid' : 'n/a'
       });
 
       // 2. Update Session Stats
-      const updatedCandidates = activeSession.candidates.map(c => {
+      const updatedCandidates = activeSession.candidates.map((c: any) => {
         if (selectedCandidates.includes(c.id)) {
           return { ...c, voteCount: (c.voteCount || 0) + 1 };
         }
@@ -98,13 +118,20 @@ export default function VotingPage() {
       });
 
       // Record vote locally
-      const updatedVotedIds = [...alreadyVotedEvents, activeSession.id];
-      localStorage.setItem('voted_session_ids', JSON.stringify(updatedVotedIds));
+      if (!activeSession.isPaid) {
+        const updatedVotedIds = [...alreadyVotedEvents, activeSession.id];
+        localStorage.setItem('voted_session_ids', JSON.stringify(updatedVotedIds));
+      }
       
       setHasVoted(true);
       setVotingStep('none');
+      setSelectedCandidates([]);
+      // Reset payment status for next vote
+      setPaymentStatus('idle');
+      setSelectedProvider(null);
     } catch (error) {
       console.error('Error submitting votes:', error);
+      setPaymentStatus('failed');
     } finally {
       setSubmitting(false);
     }
@@ -472,7 +499,7 @@ export default function VotingPage() {
                 </div>
               </div>
             </motion.div>
-          ) : (
+          ) : votingStep === 'identity' ? (
             <motion.div
               key="identity-view"
               initial={{ opacity: 0, scale: 0.9 }}
@@ -523,7 +550,84 @@ export default function VotingPage() {
                 </div>
               </div>
             </motion.div>
-          )}
+          ) : votingStep === 'payment' ? (
+            <motion.div key="payment-view" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.1 }} className="max-w-xl mx-auto">
+              <div className="bg-white p-12 rounded-[3.5rem] shadow-2xl shadow-blue-900/10 text-center border border-gray-100">
+                <div className="w-20 h-20 bg-emerald-50 text-emerald-600 rounded-3xl flex items-center justify-center mx-auto mb-8">
+                  <CreditCard size={40} />
+                </div>
+                <h2 className="text-3xl font-black text-gray-900 tracking-tight mb-2">Paiement Mobile Money</h2>
+                <p className="text-gray-500 font-medium mb-10 leading-relaxed">
+                  Le vote pour ce challenge est payant.<br/>Montant à payer : <span className="text-emerald-600 font-black">{activeSession.pricePerVote} FCFA</span>
+                </p>
+
+                <div className="space-y-6">
+                  <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { id: 'mtn', name: 'MTN', color: 'bg-[#ffcc00] text-black', icon: 'https://seeklogo.com/images/M/mtn-logo-40644FC8B0-seeklogo.com.png' },
+                      { id: 'moov', name: 'Moov', color: 'bg-[#005aab] text-white', icon: 'https://vignette.wikia.nocookie.net/logopedia/images/2/23/Moov_Bénin_logo.png' },
+                      { id: 'celtiis', name: 'Celtiis', color: 'bg-[#ee3124] text-white', icon: 'https://celtiis.bj/wp-content/uploads/2022/10/Logo-celtiis-horizontal-RVB-1024x264.png' }
+                    ].map(prov => (
+                      <button
+                        key={prov.id}
+                        onClick={() => setSelectedProvider(prov.id as any)}
+                        className={cn(
+                          "p-4 rounded-2xl border-4 transition-all flex flex-col items-center space-y-2",
+                          selectedProvider === prov.id ? "border-emerald-500 scale-105" : "border-gray-50 hover:border-emerald-200"
+                        )}
+                      >
+                         <img src={prov.icon} className="h-8 object-contain" alt={prov.name} />
+                         <span className="text-[10px] font-black uppercase tracking-widest">{prov.name}</span>
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="bg-yellow-50 p-4 rounded-2xl flex items-start space-x-3 text-left border border-yellow-100">
+                     <Info size={20} className="text-yellow-600 flex-shrink-0 mt-1" />
+                     <p className="text-xs text-yellow-800 font-medium leading-relaxed">
+                       Une fois cliqué sur "Payez & Valider", vous recevrez une demande de confirmation de paiement sur votre téléphone (<b>{voterPhone}</b>).
+                     </p>
+                  </div>
+
+                  <div className="flex space-x-3">
+                    <Button variant="outline" className="flex-1 h-16 rounded-[2rem]" onClick={() => setVotingStep('identity')}>Annuler</Button>
+                    <Button 
+                      className="flex-[2] h-16 rounded-[2rem] bg-emerald-600 hover:bg-emerald-700 text-white shadow-xl shadow-emerald-600/20"
+                      disabled={!selectedProvider}
+                      onClick={handleSubmitVotes}
+                    >
+                      Payez & Valider
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          ) : votingStep === 'processing' ? (
+            <motion.div key="processing-view" initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="max-w-xl mx-auto">
+               <div className="bg-white p-16 rounded-[3.5rem] shadow-2xl text-center border border-gray-100">
+                  <div className="relative w-32 h-32 mx-auto mb-10">
+                     <div className="absolute inset-0 border-8 border-emerald-100 rounded-full" />
+                     <motion.div 
+                       className="absolute inset-0 border-8 border-emerald-600 rounded-full border-t-transparent"
+                       animate={{ rotate: 360 }}
+                       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                     />
+                     <div className="absolute inset-0 flex items-center justify-center">
+                        <Phone size={40} className="text-emerald-600 animate-pulse" />
+                     </div>
+                  </div>
+                  <h2 className="text-3xl font-black text-gray-900 mb-4 uppercase tracking-tight">Vérifiez votre téléphone</h2>
+                  <p className="text-gray-500 font-medium mb-8 leading-relaxed">
+                     Une demande de paiement a été envoyée au <span className="text-gray-900 font-black">{voterPhone}</span>.<br/>
+                     Saisissez votre code PIN Mobile Money pour valider le vote.
+                  </p>
+                  <div className="p-4 bg-gray-50 rounded-2xl inline-flex items-center space-x-3">
+                     <Loader2 className="animate-spin text-blue-600" size={16} />
+                     <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">En attente de validation...</span>
+                  </div>
+               </div>
+            </motion.div>
+          ) : null}
         </AnimatePresence>
       </div>
     </div>
