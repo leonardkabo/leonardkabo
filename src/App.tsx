@@ -2172,14 +2172,14 @@ const ModuleDetail = ({
   };
 
   const markdownComponents = {
-    img: (props: any) => (
+    img: ({ node, ...props }: any) => (
       <div className="my-6">
         <img 
           {...props} 
           className="max-w-full h-auto rounded-3xl mx-auto block shadow-xl border-4 border-white" 
           referrerPolicy="no-referrer"
         />
-        {props.title && <p className="text-center text-[10px] font-bold text-slate-400 mt-2 italic">{props.title}</p>}
+        {props.title && <span className="text-center text-[10px] font-bold text-slate-400 mt-2 italic block">{props.title}</span>}
       </div>
     ),
     video: ({ src, title }: any) => (
@@ -2187,21 +2187,22 @@ const ModuleDetail = ({
         <div className="aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
           <video src={src} controls className="w-full h-full" referrerPolicy="no-referrer" />
         </div>
-        {title && <p className="text-center text-[10px] font-bold text-slate-400 italic">Vidéo: {title}</p>}
+        {title && <span className="text-center text-[10px] font-bold text-slate-400 italic block">Vidéo: {title}</span>}
       </div>
     ),
-    p: (props: any) => {
-      // Check if the only child is a string that looks like a video tag or a video URL
-      const content = props.children?.toString() || '';
-      const videoMatch = content.match(/@\[video\]\((.*?)\)/i) || content.match(/<video src="(.*?)".*?>/i);
-      
-      if (videoMatch) {
-         return <markdownComponents.video src={videoMatch[1]} />;
+    p: ({ node, children, ...props }: any) => {
+      const childrenArray = React.Children.toArray(children);
+      if (childrenArray.length === 1 && typeof childrenArray[0] === 'string') {
+        const text = childrenArray[0] as string;
+        const videoMatch = text.match(/@\[video\]\((.*?)\)/i) || text.match(/<video src="(.*?)".*?>/i);
+        if (videoMatch) {
+          return <markdownComponents.video src={videoMatch[1]!} />;
+        }
       }
       
-      return <p {...props} className="leading-relaxed mb-4 text-sm text-slate-700" />;
+      return <div {...props} className="leading-relaxed mb-4 text-sm text-slate-700">{children}</div>;
     },
-    a: (props: any) => {
+    a: ({ node, ...props }: any) => {
       const isVideo = props.href?.match(/\.(mp4|webm|ogg)$/i);
       if (isVideo) {
         return <markdownComponents.video src={props.href} title={props.children} />;
