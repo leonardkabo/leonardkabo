@@ -2185,22 +2185,30 @@ const ModuleDetail = ({
     video: ({ src, title }: any) => (
       <div className="my-8 space-y-3">
         <div className="aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
-          <video src={src} controls className="w-full h-full" referrerPolicy="no-referrer" />
+          <video src={src} controls className="w-full h-full" />
         </div>
         {title && <span className="text-center text-[10px] font-bold text-slate-400 italic block">Vidéo: {title}</span>}
       </div>
     ),
-    p: ({ node, children, ...props }: any) => {
+    p: ({ children, ...props }: any) => {
+      // Check for video markers in strings
       const childrenArray = React.Children.toArray(children);
       if (childrenArray.length === 1 && typeof childrenArray[0] === 'string') {
         const text = childrenArray[0] as string;
         const videoMatch = text.match(/@\[video\]\((.*?)\)/i) || text.match(/<video src="(.*?)".*?>/i);
         if (videoMatch) {
-          return <markdownComponents.video src={videoMatch[1]!} />;
+          return (
+            <div className="my-8 space-y-3">
+              <div className="aspect-video bg-black rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
+                <video src={videoMatch[1]} controls className="w-full h-full" />
+              </div>
+            </div>
+          );
         }
       }
       
-      return <div {...props} className="leading-relaxed mb-4 text-sm text-slate-700">{children}</div>;
+      // Always render as div to prevent "p can't contain div" errors when markdown includes images or videos
+      return <div className="leading-relaxed mb-6 text-sm text-slate-700">{children}</div>;
     },
     a: ({ node, ...props }: any) => {
       const isVideo = props.href?.match(/\.(mp4|webm|ogg)$/i);
@@ -2889,6 +2897,12 @@ const AdminDashboard = ({
       const content = editingModule.content || '';
       const newContent = content.substring(0, start) + text + content.substring(end);
       setEditingModule({ ...editingModule, content: newContent });
+      
+      // Reset focus and selection after state update
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + text.length, start + text.length);
+      }, 0);
     } else {
       setEditingModule({ ...editingModule, content: (editingModule.content || '') + "\n" + text });
     }
